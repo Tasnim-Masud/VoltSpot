@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoltSpot — Find a charger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#120D08; --ink:#120D08; --panel:#1D150E; --panel-2:#271C12;
+    --line: rgba(var(--amber-rgb),0.16);
+    --cyan:#FF7A33; --amber:#FFC53D; --fog:#D8CDBC; --white:#FFF8EF; --red:#E5484D;
+    --cyan-rgb:255,122,51; --amber-rgb:255,197,61; --red-rgb:229,72,77; --gridline-rgb:255,255,255;
+    --headerbg: rgba(18,13,8,0.9);
+    --glow1: rgba(var(--cyan-rgb),0.06); --glow2: rgba(var(--amber-rgb),0.05);
+    --radius:14px;
+  }
+  :root[data-theme="day"]{
+    --bg:#F3ECDC; --ink:#0F2A2E; --panel:#FFFFFF; --panel-2:#E4F1F0;
+    --cyan:#1CA7B8; --amber:#E8442F; --fog:#3F5A5F; --white:#0F2A2E; --red:#C81E3A;
+    --cyan-rgb:28,167,184; --amber-rgb:232,68,47; --red-rgb:200,30,58; --gridline-rgb:15,42,46;
+    --headerbg: rgba(243,236,220,0.88);
+    --glow1: rgba(var(--cyan-rgb),0.08); --glow2: rgba(var(--amber-rgb),0.06);
+  }
+  [data-theme] *{ transition: background-color .25s ease, border-color .25s ease, color .25s ease; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--fog); font-family:'Inter','Noto Sans Bengali',sans-serif; line-height:1.5; }
+  h1,h2,h3{ font-family:'Space Grotesk','Noto Sans Bengali',sans-serif; color:var(--white); letter-spacing:-0.02em; }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+  a{ color:inherit; text-decoration:none; }
+  .wrap{ max-width:760px; margin:0 auto; padding:0 24px 60px; }
+
+  /* ---- app header, shared shell across app pages ---- */
+  header.app{
+    position:sticky; top:0; z-index:20;
+    background:var(--headerbg); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .app-nav{
+    max-width:760px; margin:0 auto; padding:0 24px;
+    height:70px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .logo{ display:flex; align-items:center; gap:10px; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:1.1rem; color:var(--white); }
+  .logo .bolt{ width:22px; height:22px; display:grid; place-items:center; color:var(--ink); background:var(--cyan); border-radius:6px; font-size:14px; font-weight:700; }
+  .back{ display:flex; align-items:center; gap:8px; font-size:0.88rem; color:var(--fog); transition:color .2s; }
+  .back:hover{ color:var(--white); }
+  .plate-chip{
+    display:flex; align-items:center; gap:8px; font-size:0.78rem; color:var(--white);
+    background:var(--panel-2); border:1px solid var(--line); padding:7px 14px; border-radius:999px;
+  }
+  .plate-chip::before{ content:""; width:6px; height:6px; border-radius:50%; background:var(--cyan); }
+  .theme-toggle{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:38px; height:38px; border-radius:50%; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--white); font-size:1rem; cursor:pointer;
+    flex-shrink:0; transition:border-color .2s, transform .2s;
+  }
+  .theme-toggle:hover{ border-color:var(--cyan); transform:translateY(-1px); }
+
+  .page-head{ padding:36px 0 24px; }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:'JetBrains Mono', monospace; font-size:0.74rem; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--cyan); border:1px solid rgba(var(--cyan-rgb),0.3); padding:5px 12px; border-radius:999px; margin-bottom:14px;
+  }
+  .page-head h1{ font-size:1.9rem; margin-bottom:8px; }
+  .page-head p{ font-size:0.95rem; max-width:480px; }
+
+  /* filters */
+  .filters{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
+  .chip-btn{
+    font-family:'Inter',sans-serif; font-size:0.84rem; color:var(--fog);
+    background:var(--panel); border:1px solid var(--line); padding:9px 16px; border-radius:999px;
+    cursor:pointer; transition:border-color .2s, color .2s, background .2s;
+  }
+  .chip-btn.active, .chip-btn:hover{ color:var(--white); border-color:var(--cyan); background:rgba(var(--cyan-rgb),0.08); }
+
+  /* mock map, matching the landing page's dashboard visual language */
+  .map{
+    height:190px; border-radius:16px; margin-bottom:24px;
+    background:
+      radial-gradient(circle at 30% 30%, rgba(var(--cyan-rgb),0.18), transparent 55%),
+      radial-gradient(circle at 75% 65%, rgba(var(--amber-rgb),0.14), transparent 50%),
+      repeating-linear-gradient(0deg, rgba(var(--gridline-rgb),0.03) 0 1px, transparent 1px 26px),
+      repeating-linear-gradient(90deg, rgba(var(--gridline-rgb),0.03) 0 1px, transparent 1px 26px),
+      var(--panel-2);
+    border:1px solid var(--line);
+    position:relative; overflow:hidden;
+  }
+  .pin{ position:absolute; width:10px; height:10px; border-radius:50%; box-shadow:0 0 0 5px rgba(var(--cyan-rgb),0.15); }
+  .pin.you{ background:var(--white); top:70%; left:18%; }
+  .pin.a{ background:var(--cyan); top:34%; left:52%; animation:pulse 1.6s infinite; }
+  .pin.b{ background:var(--amber); top:58%; left:74%; }
+  .pin.c{ background:var(--red); top:22%; left:34%; }
+  @keyframes pulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(var(--cyan-rgb),0.35); } 50%{ box-shadow:0 0 0 6px rgba(var(--cyan-rgb),0); } }
+
+  /* station list */
+  .station{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 18px; margin-bottom:12px;
+    transition:border-color .2s, transform .2s;
+  }
+  .station:hover{ border-color:rgba(var(--cyan-rgb),0.3); transform:translateY(-2px); }
+  .station .info{ display:flex; align-items:flex-start; gap:12px; }
+  .status-dot{ width:9px; height:9px; border-radius:50%; margin-top:6px; flex-shrink:0; }
+  .station.avail .status-dot{ background:var(--cyan); animation:pulse 1.8s infinite; }
+  .station.busy .status-dot{ background:var(--red); }
+  .station.maint .status-dot{ background:var(--amber); }
+  .station.planned{ opacity:0.85; border-style:dashed; }
+  .station.planned .status-dot{ background:var(--fog); opacity:0.6; }
+  .badge-planned{
+    display:inline-block; font-size:0.68rem; font-weight:600; letter-spacing:0.03em; text-transform:uppercase;
+    color:var(--ink); background:var(--fog); padding:2px 8px; border-radius:999px; margin-left:8px; vertical-align:middle;
+  }
+
+  /* location permission banner */
+  .loc-banner{
+    display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:12px 16px; margin-bottom:18px; font-size:0.84rem;
+  }
+  .loc-banner .msg{ display:flex; align-items:center; gap:10px; }
+  .loc-banner .msg::before{ content:"📍"; font-size:1rem; }
+  .loc-banner button{
+    font-family:'Inter',sans-serif; font-size:0.8rem; font-weight:600; color:var(--ink);
+    background:var(--cyan); border:none; padding:8px 14px; border-radius:8px; cursor:pointer;
+  }
+  .loc-banner.ok{ border-color:rgba(var(--cyan-rgb),0.3); }
+  .loc-banner.err{ border-color:rgba(var(--red-rgb),0.35); }
+  .station .name{ color:var(--white); font-weight:600; font-size:0.98rem; margin-bottom:3px; }
+  .station .meta{ font-size:0.8rem; color:var(--fog); opacity:0.85; }
+  .station .price{ font-size:0.78rem; margin-top:6px; }
+  .station .right{ text-align:right; flex-shrink:0; }
+  .station .dist{ font-size:0.78rem; margin-bottom:10px; display:block; }
+  .btn-mini{
+    font-size:0.82rem; font-weight:600; padding:9px 16px; border-radius:8px; border:none; cursor:pointer;
+    font-family:'Inter',sans-serif; transition:transform .2s, box-shadow .2s;
+  }
+  .btn-mini.avail{ background:var(--cyan); color:var(--ink); }
+  .btn-mini.avail:hover{ transform:translateY(-2px); box-shadow:0 8px 20px rgba(var(--cyan-rgb),0.22); }
+  .btn-mini.disabled{ background:var(--panel-2); color:var(--fog); opacity:0.6; cursor:not-allowed; }
+
+  .empty{ text-align:center; padding:40px 0; color:var(--fog); font-size:0.9rem; }
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="app-nav">
+    <a href="menu.html" class="logo" id="logoLink"><span class="bolt">⚡</span>VoltSpot</a>
+    <a href="menu.html" class="back" id="backLink">← Menu</a>
+    <a href="history.html" class="back" id="historyLink">History</a>
+    <span id="plateChip" class="plate-chip mono" hidden></span>
+    <a href="#" id="logoutLink" class="back" title="Log out">Log out</a>
+    <a href="#" id="settingsLink" class="theme-toggle" title="Settings" aria-label="Settings">⚙</a>
+    <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle day/night mode">🌙</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="page-head">
+    <span class="eyebrow" data-i18n="findEyebrow">Step 01 · Find</span>
+    <h1 data-i18n="findHeading">Chargers near you</h1>
+    <p data-i18n="findSub">Live status for every charger within range. Green means it's free to reserve right now.</p>
+  </div>
+
+  <div class="loc-banner" id="locBanner">
+    <span class="msg" id="locMsg" data-i18n="findRequestingLoc">Requesting your location to sort chargers by distance…</span>
+    <button id="locBtn" type="button" hidden data-i18n="findEnableLocation">Enable location</button>
+  </div>
+
+  <div class="filters" id="filters">
+    <button class="chip-btn active" data-filter="all" data-i18n="findFilterAll">All</button>
+    <button class="chip-btn" data-filter="avail" data-i18n="findFilterAvailable">Available now</button>
+    <button class="chip-btn" data-filter="dc" data-i18n="findFilterDC">DC Fast</button>
+    <button class="chip-btn" data-filter="ac" data-i18n="findFilterAC">AC</button>
+    <button class="chip-btn" data-filter="planned" data-i18n="findFilterPlanned">Planned sites (RUET)</button>
+  </div>
+
+  <div class="map">
+    <div class="pin you" title="You"></div>
+    <div class="pin a" title="Available"></div>
+    <div class="pin b" title="Maintenance"></div>
+    <div class="pin c" title="Occupied"></div>
+  </div>
+
+  <div id="stationList"></div>
+  <div class="empty" id="emptyState" hidden data-i18n="findEmpty">No chargers match that filter right now.</div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/i18n.js"></script>
+<script>
+  // Fallback data, used only if the backend can't be reached (e.g. opened
+  // as a static file, or the server isn't running). When the server IS
+  // running, GET /api/stations replaces this with live data — so a station
+  // operator's price/availability changes actually show up here.
+  let stations = [
+    { name:'Electric Vehicle Charging Station', sub:'9M7Q+2PQ, Dhaka - Rajshahi Hwy', type:'dc', connector:'Unknown plug', kw:440, price:0.40, lat:24.4020, lng:88.7510, status:'avail', hours:'Open 24 hours' },
+    { name:"Sunny's Rikshaw Garage",            sub:'Hosenigong Road, Rajshahi',      type:'ac', connector:'Unknown plug', kw:22,  price:0.30, lat:24.3745, lng:88.6042, status:'avail', hours:'Open · closes 12 AM', phone:'01717-136810' },
+    { name:'Electric Vehicle Charging Station', sub:'9HF6+J6W, N6',                   type:'dc', connector:'Unknown plug', kw:60,  price:0.38, lat:24.2540, lng:88.9820, status:'avail', hours:'Hours not listed' },
+    { name:'Adani Charging Station',            sub:'Bokhara, Sagardighi, West Bengal',type:'dc', connector:'CCS', kw:60,  price:0.45, lat:24.2310, lng:88.0790, status:'avail', hours:'Open 24 hours', url:'https://www.adanielectricity.com/' },
+    { name:'BPCL Charging Station',              sub:'Morgram, West Bengal',           type:'dc', connector:'CCS', kw:30,  price:0.36, lat:24.2020, lng:88.1030, status:'busy', hours:'Open 24 hours', phone:'+91 1800 22 4344' },
+    { name:'Tanisa Computer & Xerox',            sub:'Jhaubaria, Raninagar, Murshidabad', type:'ac', connector:'Unknown plug', kw:11, price:0.26, lat:24.3040, lng:88.1980, status:'avail', hours:'Hours not listed' },
+    { name:'Electric Vehicle Charging Station', sub:'CJ58+455, Borobongram',           type:'dc', connector:'Unknown plug', kw:50,  price:0.35, lat:24.3510, lng:88.6510, status:'maint', hours:'Hours not listed' },
+  ];
+
+  async function loadLiveStations(){
+    try {
+      const r = await fetch('/api/stations');
+      const data = await r.json();
+      if(r.ok && Array.isArray(data.stations) && data.stations.length){
+        stations = data.stations; // already { name, sub, type, connector, kw, price, lat, lng, status, hours, phone, url }
+        renderStations(currentFilter);
+      }
+    } catch (err) {
+      // Backend not reachable — silently keep the fallback list above.
+    }
+  }
+
+  // Suggested future sites on the RUET campus, not yet installed —
+  // shown as a separate, non-reservable "planned" category so the
+  // team can see where to prioritize new hardware.
+  const plannedStations = [
+    { name:'RUET Garage',               sub:'Station Rd · 3.8 mi from campus gate', type:'dc', lat:24.3625, lng:88.6255, rating:4.6, reviews:'1.8K', note:'Public university lot — closed overnight' },
+    { name:'RUET Main Gate',            sub:'9J7H+3F5, Natore Rd', type:'ac', lat:24.3652, lng:88.6222, rating:4.5, reviews:'495', note:'High foot + vehicle traffic all day' },
+    { name:'Department of Architecture',sub:'Architecture Building', type:'ac', lat:24.3641, lng:88.6238, rating:4.6, reviews:'50', note:'Academic department, daytime use' },
+    { name:'Department of EEE',         sub:'সত্যেন্দ্রনাথ বসু বিজ্ঞান ভবন', type:'dc', lat:24.3648, lng:88.6248, rating:4.8, reviews:'25', note:'Closest to power infrastructure' },
+    { name:'RUET Cafeteria Area',       sub:'৳1–200 · Restaurant', type:'ac', lat:24.3630, lng:88.6262, rating:4.0, reviews:'176', note:'Long dwell time while students eat' },
+    { name:'RUET Bus Stand',            sub:'Bus stop, Rajshahi', type:'ac', lat:24.3660, lng:88.6270, rating:4.5, reviews:'49', note:'Good for quick top-up charging' },
+  ];
+
+  const params = new URLSearchParams(window.location.search);
+
+  // ---- day/night theme, carried across pages via the ?theme= param ----
+  let theme = params.get('theme') === 'day' ? 'day' : 'night';
+  document.documentElement.setAttribute('data-theme', theme);
+  params.set('theme', theme);
+
+  // ---- language, carried across pages via the ?lang= param ----
+  let lang = VoltSpotI18n.getLang(params);
+  params.set('lang', lang);
+  VoltSpotI18n.apply(lang);
+
+  function updateNavLinks(){
+    document.getElementById('backLink').href = 'menu.html?' + params.toString();
+    document.getElementById('logoLink').href = 'menu.html?' + params.toString();
+    document.getElementById('historyLink').href = 'history.html?' + params.toString();
+    document.getElementById('settingsLink').href = 'settings.html?' + params.toString();
+  }
+
+  const themeToggle = document.getElementById('themeToggle');
+  themeToggle.textContent = theme === 'day' ? '🌙' : '☀️';
+  themeToggle.addEventListener('click', () => {
+    theme = theme === 'day' ? 'night' : 'day';
+    document.documentElement.setAttribute('data-theme', theme);
+    themeToggle.textContent = theme === 'day' ? '🌙' : '☀️';
+    params.set('theme', theme);
+    window.history.replaceState({}, '', 'find.html?' + params.toString());
+    updateNavLinks();
+  });
+
+  const plate = params.get('plate');
+  if(plate){
+    document.getElementById('plateChip').textContent = plate;
+    document.getElementById('plateChip').hidden = false;
+  }
+  updateNavLinks();
+
+  document.getElementById('logoutLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    VoltSpotAPI.logout(theme);
+  });
+
+  const statusLabel = {
+    get avail(){ return VoltSpotI18n.t(lang, 'findStatusAvail'); },
+    get busy(){ return VoltSpotI18n.t(lang, 'findStatusBusy'); },
+    get maint(){ return VoltSpotI18n.t(lang, 'findStatusMaint'); },
+    get planned(){ return VoltSpotI18n.t(lang, 'findStatusPlanned'); },
+  };
+
+  // ---- real device geolocation ----
+  let userCoords = null;
+  let currentFilter = 'all';
+
+  function haversineMiles(lat1, lon1, lat2, lon2){
+    const toRad = d => d * Math.PI / 180;
+    const R = 3958.8; // Earth radius, miles
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  function distanceLabel(s){
+    if(!userCoords) return VoltSpotI18n.t(lang, 'findEnableLocation');
+    if(s.lat == null || s.lng == null) return '—';
+    const mi = haversineMiles(userCoords.lat, userCoords.lng, s.lat, s.lng);
+    const unit = VoltSpotI18n.t(lang, 'findMilesUnit');
+    return (mi < 10 ? mi.toFixed(1) : Math.round(mi)) + ' ' + unit;
+  }
+
+  // Prefers a station's operator-provided Bangla text when the app is set
+  // to বাংলা, falling back to the English text if they haven't filled it in.
+  function localized(s, field, bnField){
+    if(lang === 'bn' && s[bnField]) return s[bnField];
+    return s[field];
+  }
+
+  const locBanner = document.getElementById('locBanner');
+  const locMsg = document.getElementById('locMsg');
+  const locBtn = document.getElementById('locBtn');
+
+  function requestLocation(){
+    if(!('geolocation' in navigator)){
+      locBanner.className = 'loc-banner err';
+      locMsg.textContent = VoltSpotI18n.t(lang, 'findLocUnsupported');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        userCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        locBanner.className = 'loc-banner ok';
+        locMsg.textContent = VoltSpotI18n.t(lang, 'findLocOn');
+        locBtn.hidden = true;
+        renderStations(currentFilter);
+      },
+      err => {
+        locBanner.className = 'loc-banner err';
+        locMsg.textContent = err.code === err.PERMISSION_DENIED
+          ? VoltSpotI18n.t(lang, 'findLocDenied')
+          : VoltSpotI18n.t(lang, 'findLocFailed');
+        locBtn.hidden = false;
+        renderStations(currentFilter);
+      },
+      { enableHighAccuracy:true, timeout:8000, maximumAge:30000 }
+    );
+  }
+  locBtn.addEventListener('click', requestLocation);
+
+  function renderStations(filter){
+    currentFilter = filter;
+    const list = document.getElementById('stationList');
+    const empty = document.getElementById('emptyState');
+    list.innerHTML = '';
+
+    let source, isPlanned;
+    if(filter === 'planned'){
+      source = plannedStations; isPlanned = true;
+    } else {
+      source = stations.filter(s => {
+        if(filter === 'all') return true;
+        if(filter === 'avail') return s.status === 'avail';
+        return s.type === filter;
+      });
+      isPlanned = false;
+    }
+
+    // sort by live distance when we have a location fix
+    const withDist = source.map(s => ({
+      s,
+      mi: (userCoords && s.lat != null && s.lng != null)
+        ? haversineMiles(userCoords.lat, userCoords.lng, s.lat, s.lng)
+        : null,
+    }));
+    withDist.sort((a,b) => {
+      if(a.mi === null || b.mi === null) return localized(a.s, 'name', 'nameBn').localeCompare(localized(b.s, 'name', 'nameBn'));
+      return a.mi - b.mi;
+    });
+
+    empty.hidden = withDist.length > 0;
+
+    withDist.forEach(({s}) => {
+      const row = document.createElement('div');
+
+      if(isPlanned){
+        row.className = 'station planned';
+        row.innerHTML = `
+          <div class="info">
+            <span class="status-dot"></span>
+            <div>
+              <div class="name">${s.name}<span class="badge-planned">Suggested site</span></div>
+              <div class="meta">${s.sub}</div>
+              <div class="meta price mono">${s.rating}★ (${s.reviews}) · ${s.type === 'dc' ? 'DC Fast planned' : 'AC planned'}</div>
+              <div class="meta">${s.note}</div>
+            </div>
+          </div>
+          <div class="right">
+            <span class="dist mono">${distanceLabel(s)}</span>
+            <button class="btn-mini disabled" disabled>${VoltSpotI18n.t(lang, 'findNotInstalled')}</button>
+          </div>`;
+        list.appendChild(row);
+        return;
+      }
+
+      row.className = 'station ' + s.status;
+      const canReserve = s.status === 'avail';
+      const nameText = localized(s, 'name', 'nameBn');
+      const subText = localized(s, 'sub', 'subBn') || '';
+      const hoursText = localized(s, 'hours', 'hoursBn') || VoltSpotI18n.t(lang, 'findHoursUnknown');
+      const connectorText = s.connector || VoltSpotI18n.t(lang, 'findConnectorUnknown');
+      const typeText = s.type === 'dc' ? VoltSpotI18n.t(lang, 'findDcFast') : VoltSpotI18n.t(lang, 'findAc');
+
+      row.innerHTML = `
+        <div class="info">
+          <span class="status-dot"></span>
+          <div>
+            <div class="name">${nameText}</div>
+            <div class="meta">${subText}</div>
+            <div class="meta">${statusLabel[s.status]} · ${hoursText} · ${typeText} · ${connectorText}</div>
+            <div class="meta price mono">${s.kw}kW · $${Number(s.price).toFixed(2)}/kWh</div>
+          </div>
+        </div>
+        <div class="right">
+          <span class="dist mono">${distanceLabel(s)}</span>
+          <button class="btn-mini ${canReserve ? 'avail' : 'disabled'}" ${canReserve ? '' : 'disabled'}>
+            ${canReserve ? VoltSpotI18n.t(lang, 'findReserve') : (s.status === 'busy' ? VoltSpotI18n.t(lang, 'findNotifyMe') : VoltSpotI18n.t(lang, 'findUnavailable'))}
+          </button>
+        </div>`;
+
+      if(canReserve){
+        row.querySelector('button').addEventListener('click', () => {
+          const target = new URLSearchParams(params);
+          target.set('station', nameText);
+          target.set('connector', s.connector || '');
+          target.set('kw', s.kw);
+          target.set('price', s.price);
+          if(s.lat != null) target.set('lat', s.lat);
+          if(s.lng != null) target.set('lng', s.lng);
+          if(s.id != null) target.set('stationId', s.id);
+          window.location.href = 'reserve.html?' + target.toString();
+        });
+      }
+
+      list.appendChild(row);
+    });
+  }
+
+  document.getElementById('filters').addEventListener('click', (e) => {
+    if(!e.target.matches('.chip-btn')) return;
+    document.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    renderStations(e.target.dataset.filter);
+  });
+
+  renderStations('all');
+  requestLocation();
+  loadLiveStations();
+</script>
+
+</body>
+</html>
