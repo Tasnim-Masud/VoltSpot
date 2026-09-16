@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoltSpot — Station dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#120D08; --ink:#120D08; --panel:#1D150E; --panel-2:#271C12;
+    --line: rgba(var(--amber-rgb),0.16);
+    --cyan:#FF7A33; --amber:#FFC53D; --fog:#D8CDBC; --white:#FFF8EF; --red:#E5484D; --green:#3ECF8E;
+    --cyan-rgb:255,122,51; --amber-rgb:255,197,61; --red-rgb:229,72,77;
+    --headerbg: rgba(18,13,8,0.9);
+  }
+  :root[data-theme="day"]{
+    --bg:#F3ECDC; --ink:#0F2A2E; --panel:#FFFFFF; --panel-2:#E4F1F0;
+    --cyan:#1CA7B8; --amber:#E8442F; --fog:#3F5A5F; --white:#0F2A2E; --red:#C81E3A; --green:#1E8E5A;
+    --cyan-rgb:28,167,184; --amber-rgb:232,68,47; --red-rgb:200,30,58;
+    --headerbg: rgba(243,236,220,0.88);
+  }
+  [data-theme] *{ transition: background-color .25s ease, border-color .25s ease, color .25s ease; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--fog); font-family:'Inter','Noto Sans Bengali',sans-serif; line-height:1.5; min-height:100vh; }
+  h1,h2,h3{ font-family:'Space Grotesk','Noto Sans Bengali',sans-serif; color:var(--white); letter-spacing:-0.02em; }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+  a{ color:inherit; text-decoration:none; }
+  .wrap{ max-width:1040px; margin:0 auto; padding:0 24px 80px; }
+
+  header.app{ position:sticky; top:0; z-index:20; background:var(--headerbg); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+  .app-nav{ max-width:1040px; margin:0 auto; padding:0 24px; height:70px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .logo{ display:flex; align-items:center; gap:10px; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:1.1rem; color:var(--white); }
+  .logo .bolt{ width:22px; height:22px; display:grid; place-items:center; color:var(--ink); background:var(--amber); border-radius:6px; font-size:14px; font-weight:700; }
+  .back{ display:flex; align-items:center; gap:8px; font-size:0.88rem; color:var(--fog); transition:color .2s; }
+  .back:hover{ color:var(--white); }
+  .theme-toggle{
+    display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:50%;
+    border:1px solid var(--line); background:var(--panel-2); color:var(--white); font-size:1rem; cursor:pointer;
+    flex-shrink:0;
+  }
+
+  .page-head{ padding:36px 0 24px; display:flex; align-items:flex-start; justify-content:space-between; gap:20px; flex-wrap:wrap; }
+  .eyebrow{ display:inline-flex; align-items:center; gap:8px; font-family:'JetBrains Mono', monospace; font-size:0.74rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--amber); border:1px solid rgba(var(--amber-rgb),0.3); padding:5px 12px; border-radius:999px; margin-bottom:14px; }
+  .page-head h1{ font-size:1.9rem; margin-bottom:6px; }
+  .page-head p{ font-size:0.92rem; max-width:520px; }
+  .status-pill-lg{
+    font-size:0.78rem; font-weight:600; letter-spacing:0.03em; text-transform:uppercase;
+    padding:8px 16px; border-radius:999px; white-space:nowrap; flex-shrink:0;
+  }
+  .status-pill-lg.avail{ color:var(--green); background:rgba(62,207,142,0.12); border:1px solid rgba(62,207,142,0.35); }
+  .status-pill-lg.busy{ color:var(--amber); background:rgba(var(--amber-rgb),0.12); border:1px solid rgba(var(--amber-rgb),0.35); }
+  .status-pill-lg.maint{ color:var(--red); background:rgba(var(--red-rgb),0.12); border:1px solid rgba(var(--red-rgb),0.35); }
+
+  .stat-row{ display:flex; gap:14px; margin-bottom:24px; flex-wrap:wrap; }
+  .stat-row .stat{ flex:1; min-width:160px; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px 20px; }
+  .stat-row .num{ font-family:'JetBrains Mono', monospace; font-size:1.4rem; color:var(--white); font-weight:600; }
+  .stat-row .lbl{ font-size:0.76rem; opacity:0.8; margin-top:2px; }
+
+  .layout{ display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:start; }
+  @media (max-width:860px){ .layout{ grid-template-columns:1fr; } }
+
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:24px; margin-bottom:20px; }
+  .card h3{ font-size:1rem; margin-bottom:4px; }
+  .card .card-sub{ font-size:0.82rem; opacity:0.8; margin-bottom:18px; }
+
+  label{ display:block; font-size:0.8rem; font-weight:500; color:var(--white); margin-bottom:8px; margin-top:18px; }
+  label:first-of-type{ margin-top:0; }
+  input, select{
+    width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--white);
+    padding:12px 14px; border-radius:10px; font-size:0.95rem; font-family:'Inter', 'Noto Sans Bengali', sans-serif;
+  }
+  input.bn-field{ font-family:'Noto Sans Bengali', 'Inter', sans-serif; }
+  .bn-badge{
+    display:inline-flex; align-items:center; font-size:0.68rem; font-weight:700; letter-spacing:0.03em;
+    color:var(--amber); background:rgba(var(--amber-rgb),0.12); border:1px solid rgba(var(--amber-rgb),0.3);
+    padding:2px 8px; border-radius:999px; margin-left:8px; vertical-align:middle;
+  }
+  input:focus, select:focus{ outline:none; border-color:var(--amber); box-shadow:0 0 0 3px rgba(var(--amber-rgb),0.15); }
+
+  .status-row{ display:flex; gap:10px; margin-top:8px; }
+  .status-btn{
+    flex:1; padding:12px 0; border-radius:10px; border:1px solid var(--line); background:var(--panel-2);
+    color:var(--fog); font-family:'Inter',sans-serif; font-size:0.85rem; cursor:pointer; text-align:center;
+  }
+  .status-btn.active[data-status="avail"]{ background:var(--green); color:#08201A; border-color:var(--green); font-weight:600; }
+  .status-btn.active[data-status="busy"]{ background:var(--amber); color:var(--ink); border-color:var(--amber); font-weight:600; }
+  .status-btn.active[data-status="maint"]{ background:var(--red); color:#2A0A0C; border-color:var(--red); font-weight:600; }
+
+  .btn-primary{
+    width:100%; margin-top:24px; background:var(--amber); color:var(--ink); border:none;
+    padding:14px 20px; border-radius:10px; font-weight:600; font-size:0.98rem;
+    font-family:'Inter', sans-serif; cursor:pointer; transition:transform .2s, box-shadow .2s;
+  }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 10px 28px rgba(var(--amber-rgb),0.22); }
+  .btn-primary:disabled{ opacity:0.6; cursor:not-allowed; transform:none; box-shadow:none; }
+
+  .saved-msg{ font-size:0.82rem; color:var(--green); margin-top:12px; text-align:center; min-height:1.2em; }
+  .error{ color:var(--red); font-size:0.82rem; margin-top:12px; text-align:center; min-height:1.2em; }
+  .meta-row{ display:flex; justify-content:space-between; font-size:0.82rem; padding:7px 0; border-bottom:1px solid var(--line); }
+  .meta-row:last-child{ border-bottom:none; }
+  .meta-row span:last-child{ color:var(--white); font-family:'JetBrains Mono', monospace; }
+
+  /* charging history table */
+  .history-entry{
+    display:grid; grid-template-columns:auto 1fr auto auto auto; gap:14px; align-items:center;
+    padding:14px 0; border-bottom:1px solid var(--line); font-size:0.85rem;
+  }
+  .history-entry:last-child{ border-bottom:none; }
+  .history-entry .plate{ font-family:'JetBrains Mono', monospace; color:var(--white); background:var(--panel-2); padding:4px 10px; border-radius:6px; font-size:0.8rem; }
+  .history-entry .date{ color:var(--fog); font-size:0.8rem; }
+  .history-entry .energy, .history-entry .cost{ font-family:'JetBrains Mono', monospace; color:var(--white); text-align:right; white-space:nowrap; }
+  .history-entry .status-tag{ font-size:0.68rem; text-transform:uppercase; padding:3px 8px; border-radius:999px; white-space:nowrap; }
+  .history-entry .status-tag.completed{ color:var(--green); background:rgba(62,207,142,0.12); }
+  .history-entry .status-tag.active{ color:var(--amber); background:rgba(var(--amber-rgb),0.12); }
+  .history-entry .status-tag.reserved{ color:var(--fog); background:var(--panel-2); }
+  .history-entry .status-tag.cancelled{ color:var(--red); background:rgba(var(--red-rgb),0.1); }
+  @media (max-width:640px){
+    .history-entry{ grid-template-columns:1fr 1fr; row-gap:4px; }
+  }
+  .empty-history{ text-align:center; padding:30px 0; font-size:0.88rem; opacity:0.75; }
+
+  .signed-out{ text-align:center; padding:80px 24px; }
+  .signed-out a{ color:var(--amber); text-decoration:underline; }
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="app-nav">
+    <a href="menu.html" class="logo" id="logoLink"><span class="bolt">⚡</span>VoltSpot</a>
+    <a href="#" id="logoutLink" class="back">Log out</a>
+    <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle day/night mode">🌙</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="signedOutView" class="signed-out" hidden>
+    <p>You're not signed in as a station. <a href="station-login.html">Sign in</a></p>
+  </div>
+
+  <div id="content" hidden>
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">Station operator</span>
+        <h1 id="stationTitle">Your charger</h1>
+        <p id="stationSub">Update your live availability, price, and specs — drivers see these instantly on the Find page.</p>
+      </div>
+      <span class="status-pill-lg" id="statusPillLg">—</span>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><div class="num mono" id="statRevenue">$0.00</div><div class="lbl">Total revenue</div></div>
+      <div class="stat"><div class="num mono" id="statEnergy">0 kWh</div><div class="lbl">Energy delivered</div></div>
+      <div class="stat"><div class="num mono" id="statSessions">0</div><div class="lbl">Completed sessions</div></div>
+    </div>
+
+    <div class="layout">
+      <div>
+        <div class="card">
+          <h3>Charging history at this station</h3>
+          <div class="card-sub">Every vehicle that's charged here, what it cost, and how much energy it drew.</div>
+          <div id="historyList"></div>
+          <div class="empty-history" id="emptyHistory" hidden>No charging sessions yet — once a driver reserves and charges here, it'll show up.</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h3>Availability</h3>
+          <div class="card-sub">Drivers see this on the Find page immediately.</div>
+          <div class="status-row" id="statusRow">
+            <button type="button" class="status-btn" data-status="avail">Available</button>
+            <button type="button" class="status-btn" data-status="busy">Occupied</button>
+            <button type="button" class="status-btn" data-status="maint">Maint.</button>
+          </div>
+        </div>
+
+        <form class="card" id="editForm">
+          <h3>Pricing & specs</h3>
+          <label for="price">Price per kWh ($)</label>
+          <input type="number" id="price" step="0.01" min="0" required>
+
+          <label for="kw">Charging speed (kW)</label>
+          <input type="number" id="kw" step="1" min="1" required>
+
+          <label for="connector">Connector type</label>
+          <input type="text" id="connector" required>
+
+          <label for="hours">Hours</label>
+          <input type="text" id="hours" placeholder="e.g. Open 24 hours">
+
+          <button type="submit" class="btn-primary" id="saveBtn">Save changes</button>
+          <div class="saved-msg" id="savedMsg"></div>
+          <div class="error" id="formError"></div>
+        </form>
+
+        <form class="card" id="bnForm">
+          <h3>বাংলা তথ্য <span class="bn-badge">Bangla content</span></h3>
+          <div class="card-sub">Shown to drivers instead of the English text when they switch the app to বাংলা. Leave blank to always show English.</div>
+
+          <label for="displayNameBn">Station name</label>
+          <input type="text" id="displayNameBn" class="bn-field" placeholder="উদাহরণ: রিভারসাইড ফাস্ট চার্জার">
+
+          <label for="subBn">Address</label>
+          <input type="text" id="subBn" class="bn-field" placeholder="উদাহরণ: ১২৩ রিভার রোড, ব্রিজের কাছে">
+
+          <label for="hoursBn">Hours</label>
+          <input type="text" id="hoursBn" class="bn-field" placeholder="উদাহরণ: ২৪ ঘণ্টা খোলা">
+
+          <button type="submit" class="btn-primary" id="saveBnBtn">Save Bangla content</button>
+          <div class="saved-msg" id="savedBnMsg"></div>
+          <div class="error" id="bnFormError"></div>
+        </form>
+
+        <div class="card">
+          <h3>Account</h3>
+          <div class="meta-row"><span>Username</span><span id="metaUsername">—</span></div>
+          <div class="meta-row"><span>Last updated</span><span id="metaUpdated">—</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  let theme = params.get('theme') === 'day' ? 'day' : 'night';
+  document.documentElement.setAttribute('data-theme', theme);
+
+  const themeToggle = document.getElementById('themeToggle');
+  themeToggle.textContent = theme === 'day' ? '🌙' : '☀️';
+  themeToggle.addEventListener('click', () => {
+    theme = theme === 'day' ? 'night' : 'day';
+    document.documentElement.setAttribute('data-theme', theme);
+    themeToggle.textContent = theme === 'day' ? '🌙' : '☀️';
+    const url = new URL(window.location.href);
+    url.searchParams.set('theme', theme);
+    window.history.replaceState({}, '', url);
+  });
+
+  const stationId = params.get('stationId');
+  const token = params.get('token');
+
+  document.getElementById('logoutLink').addEventListener('click', async (e) => {
+    e.preventDefault();
+    if(stationId && token) await VoltSpotAPI.stationLogout(stationId, token);
+    window.location.href = 'station-login.html?theme=' + theme;
+  });
+
+  if(!stationId || !token){
+    document.getElementById('signedOutView').hidden = false;
+  } else {
+    loadStation();
+    loadHistory();
+  }
+
+  let currentStatus = 'avail';
+  const statusLabels = { avail:'Available', busy:'Occupied', maint:'Maintenance' };
+  const statusRow = document.getElementById('statusRow');
+  statusRow.addEventListener('click', (e) => {
+    if(!e.target.matches('.status-btn')) return;
+    currentStatus = e.target.dataset.status;
+    highlightStatus();
+  });
+  function highlightStatus(){
+    document.querySelectorAll('.status-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.status === currentStatus);
+    });
+    const pill = document.getElementById('statusPillLg');
+    pill.textContent = statusLabels[currentStatus];
+    pill.className = 'status-pill-lg ' + currentStatus;
+  }
+
+  async function loadStation(){
+    try {
+      const { station } = await VoltSpotAPI.getStation(stationId, token);
+      document.getElementById('content').hidden = false;
+      document.getElementById('stationTitle').textContent = station.displayName;
+      document.getElementById('stationSub').textContent = station.sub || 'Update your live availability, price, and specs.';
+      document.getElementById('price').value = station.pricePerKwh;
+      document.getElementById('kw').value = station.kw;
+      document.getElementById('connector').value = station.connector || '';
+      document.getElementById('hours').value = station.hours || '';
+      document.getElementById('displayNameBn').value = station.displayNameBn || '';
+      document.getElementById('subBn').value = station.subBn || '';
+      document.getElementById('hoursBn').value = station.hoursBn || '';
+      document.getElementById('metaUsername').textContent = station.username;
+      document.getElementById('metaUpdated').textContent = new Date(station.updatedAt).toLocaleString();
+      currentStatus = station.status;
+      highlightStatus();
+    } catch (err) {
+      document.getElementById('signedOutView').hidden = false;
+      document.getElementById('signedOutView').querySelector('p').textContent =
+        err.message || 'Session expired — please sign in again.';
+    }
+  }
+
+  async function loadHistory(){
+    try {
+      const { sessions, totals } = await VoltSpotAPI.getStationSessions(stationId, token);
+      document.getElementById('statRevenue').textContent = '$' + Number(totals.totalRevenue || 0).toFixed(2);
+      document.getElementById('statEnergy').textContent = Number(totals.totalEnergyKwh || 0).toFixed(1) + ' kWh';
+      document.getElementById('statSessions').textContent = totals.completedCount || 0;
+
+      const list = document.getElementById('historyList');
+      const empty = document.getElementById('emptyHistory');
+      list.innerHTML = '';
+      empty.hidden = sessions.length > 0;
+
+      sessions.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'history-entry';
+        const when = s.completed_at || s.started_at || s.reserved_at;
+        div.innerHTML = `
+          <span class="plate">${s.plate}</span>
+          <span class="date">${new Date(when).toLocaleString(undefined, { dateStyle:'medium', timeStyle:'short' })}</span>
+          <span class="energy">${Number(s.energy_kwh || 0).toFixed(1)} kWh</span>
+          <span class="cost">$${Number(s.total_cost || 0).toFixed(2)}</span>
+          <span class="status-tag ${s.status}">${s.status}</span>
+        `;
+        list.appendChild(div);
+      });
+    } catch (err) {
+      // If not signed in, loadStation() already shows the signed-out view.
+    }
+  }
+
+  const form = document.getElementById('editForm');
+  const saveBtn = document.getElementById('saveBtn');
+  const savedMsg = document.getElementById('savedMsg');
+  const formError = document.getElementById('formError');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    savedMsg.textContent = '';
+    formError.textContent = '';
+
+    const price = parseFloat(document.getElementById('price').value);
+    const kw = parseFloat(document.getElementById('kw').value);
+    const connector = document.getElementById('connector').value.trim();
+    const hours = document.getElementById('hours').value.trim();
+
+    if(isNaN(price) || price < 0){
+      formError.textContent = 'Enter a valid price per kWh.';
+      return;
+    }
+    if(isNaN(kw) || kw <= 0){
+      formError.textContent = 'Enter a valid charging speed.';
+      return;
+    }
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+    try {
+      const { station } = await VoltSpotAPI.updateStation(stationId, token, {
+        pricePerKwh: price, kw, connector, hours, status: currentStatus,
+      });
+      document.getElementById('metaUpdated').textContent = new Date(station.updatedAt).toLocaleString();
+      savedMsg.textContent = 'Saved — drivers will see this immediately.';
+    } catch (err) {
+      formError.textContent = err.message || 'Could not save changes.';
+    }
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save changes';
+  });
+
+  const bnForm = document.getElementById('bnForm');
+  const saveBnBtn = document.getElementById('saveBnBtn');
+  const savedBnMsg = document.getElementById('savedBnMsg');
+  const bnFormError = document.getElementById('bnFormError');
+
+  bnForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    savedBnMsg.textContent = '';
+    bnFormError.textContent = '';
+
+    const displayNameBn = document.getElementById('displayNameBn').value.trim();
+    const subBn = document.getElementById('subBn').value.trim();
+    const hoursBn = document.getElementById('hoursBn').value.trim();
+
+    saveBnBtn.disabled = true;
+    saveBnBtn.textContent = 'Saving…';
+    try {
+      const { station } = await VoltSpotAPI.updateStation(stationId, token, {
+        displayNameBn, subBn, hoursBn,
+      });
+      document.getElementById('metaUpdated').textContent = new Date(station.updatedAt).toLocaleString();
+      savedBnMsg.textContent = 'Saved — drivers using বাংলা will see this immediately.';
+    } catch (err) {
+      bnFormError.textContent = err.message || 'Could not save Bangla content.';
+    }
+    saveBnBtn.disabled = false;
+    saveBnBtn.textContent = 'Save Bangla content';
+  });
+</script>
+
+</body>
+</html>

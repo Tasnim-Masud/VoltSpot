@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoltSpot — Charging history</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#120D08; --ink:#120D08; --panel:#1D150E; --panel-2:#271C12;
+    --line: rgba(var(--amber-rgb),0.16);
+    --cyan:#FF7A33; --amber:#FFC53D; --fog:#D8CDBC; --white:#FFF8EF; --red:#E5484D;
+    --cyan-rgb:255,122,51; --amber-rgb:255,197,61; --red-rgb:229,72,77; --gridline-rgb:255,255,255;
+    --headerbg: rgba(18,13,8,0.9);
+    --radius:14px;
+  }
+  :root[data-theme="day"]{
+    --bg:#F3ECDC; --ink:#0F2A2E; --panel:#FFFFFF; --panel-2:#E4F1F0;
+    --cyan:#1CA7B8; --amber:#E8442F; --fog:#3F5A5F; --white:#0F2A2E; --red:#C81E3A;
+    --cyan-rgb:28,167,184; --amber-rgb:232,68,47; --red-rgb:200,30,58; --gridline-rgb:15,42,46;
+    --headerbg: rgba(243,236,220,0.88);
+  }
+  [data-theme] *{ transition: background-color .25s ease, border-color .25s ease, color .25s ease; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--fog); font-family:'Inter','Noto Sans Bengali',sans-serif; line-height:1.5; }
+  h1,h2,h3{ font-family:'Space Grotesk','Noto Sans Bengali',sans-serif; color:var(--white); letter-spacing:-0.02em; }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+  a{ color:inherit; text-decoration:none; }
+  .wrap{ max-width:760px; margin:0 auto; padding:0 24px 60px; }
+
+  header.app{ position:sticky; top:0; z-index:20; background:var(--headerbg); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+  .app-nav{ max-width:760px; margin:0 auto; padding:0 24px; height:70px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .logo{ display:flex; align-items:center; gap:10px; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:1.1rem; color:var(--white); }
+  .logo .bolt{ width:22px; height:22px; display:grid; place-items:center; color:var(--ink); background:var(--cyan); border-radius:6px; font-size:14px; font-weight:700; }
+  .back{ display:flex; align-items:center; gap:8px; font-size:0.88rem; color:var(--fog); transition:color .2s; }
+  .back:hover{ color:var(--white); }
+  .plate-chip{ display:flex; align-items:center; gap:8px; font-size:0.78rem; color:var(--white); background:var(--panel-2); border:1px solid var(--line); padding:7px 14px; border-radius:999px; }
+  .plate-chip::before{ content:""; width:6px; height:6px; border-radius:50%; background:var(--cyan); }
+  .theme-toggle{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:38px; height:38px; border-radius:50%; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--white); font-size:1rem; cursor:pointer;
+    flex-shrink:0; transition:border-color .2s, transform .2s;
+  }
+  .theme-toggle:hover{ border-color:var(--cyan); transform:translateY(-1px); }
+
+  .page-head{ padding:36px 0 24px; }
+  .eyebrow{ display:inline-flex; align-items:center; gap:8px; font-family:'JetBrains Mono', monospace; font-size:0.74rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--cyan); border:1px solid rgba(var(--cyan-rgb),0.3); padding:5px 12px; border-radius:999px; margin-bottom:14px; }
+  .page-head h1{ font-size:1.9rem; margin-bottom:8px; }
+  .page-head p{ font-size:0.95rem; }
+
+  .totals-row{ display:flex; gap:14px; margin-bottom:24px; flex-wrap:wrap; }
+  .totals-row .stat{ flex:1; min-width:140px; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px 18px; }
+  .totals-row .num{ font-family:'JetBrains Mono', monospace; font-size:1.3rem; color:var(--white); font-weight:600; }
+  .totals-row .lbl{ font-size:0.76rem; opacity:0.8; margin-top:2px; }
+
+  .filters{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
+  .chip-btn{
+    font-family:'Inter',sans-serif; font-size:0.84rem; color:var(--fog);
+    background:var(--panel); border:1px solid var(--line); padding:9px 16px; border-radius:999px;
+    cursor:pointer; transition:border-color .2s, color .2s, background .2s;
+  }
+  .chip-btn.active, .chip-btn:hover{ color:var(--white); border-color:var(--cyan); background:rgba(var(--cyan-rgb),0.08); }
+
+  .entry{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:18px 20px; margin-bottom:12px;
+  }
+  .entry-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:10px; }
+  .entry .name{ color:var(--white); font-weight:600; font-size:1rem; margin-bottom:3px; }
+  .entry .meta{ font-size:0.8rem; opacity:0.85; }
+  .status-pill{
+    font-size:0.68rem; font-weight:600; letter-spacing:0.03em; text-transform:uppercase;
+    padding:4px 10px; border-radius:999px; white-space:nowrap; flex-shrink:0;
+  }
+  .status-pill.completed{ color:var(--cyan); background:rgba(var(--cyan-rgb),0.12); border:1px solid rgba(var(--cyan-rgb),0.3); }
+  .status-pill.active{ color:var(--amber); background:rgba(var(--amber-rgb),0.12); border:1px solid rgba(var(--amber-rgb),0.3); }
+  .status-pill.reserved{ color:var(--fog); background:var(--panel-2); border:1px solid var(--line); }
+  .status-pill.cancelled{ color:var(--red); background:rgba(var(--red-rgb),0.1); border:1px solid rgba(var(--red-rgb),0.3); }
+
+  .entry-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:12px; }
+  .entry-grid .cell{ font-size:0.8rem; }
+  .entry-grid .cell b{ display:block; color:var(--white); font-family:'JetBrains Mono', monospace; font-size:0.92rem; margin-top:2px; }
+
+  .entry-actions{ display:flex; gap:10px; }
+  .btn-mini{
+    font-size:0.8rem; font-weight:600; padding:9px 14px; border-radius:8px; border:1px solid var(--line);
+    font-family:'Inter',sans-serif; cursor:pointer; transition:transform .2s;
+    background:var(--panel-2); color:var(--white); text-decoration:none; display:inline-block;
+  }
+  .btn-mini.primary{ background:var(--cyan); color:var(--ink); border-color:var(--cyan); }
+  .btn-mini:hover{ transform:translateY(-1px); }
+
+  .empty, .loading{ text-align:center; padding:50px 0; color:var(--fog); font-size:0.9rem; }
+  .signed-out{ text-align:center; padding:60px 24px; }
+  .signed-out a{ color:var(--cyan); text-decoration:underline; }
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="app-nav">
+    <a href="menu.html" class="logo" id="logoLink"><span class="bolt">⚡</span>VoltSpot</a>
+    <a href="menu.html" class="back" id="backLink">← Menu</a>
+    <span id="plateChip" class="plate-chip mono" hidden></span>
+    <a href="#" id="logoutLink" class="back" title="Log out">Log out</a>
+    <a href="#" id="settingsLink" class="theme-toggle" title="Settings" aria-label="Settings">⚙</a>
+    <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle day/night mode">🌙</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="page-head">
+    <span class="eyebrow" data-i18n="historyEyebrow">Your account</span>
+    <h1 data-i18n="historyHeading">Charging history</h1>
+    <p data-i18n="historySub">Every reservation and charging session tied to your account, with receipts you can re-download any time.</p>
+  </div>
+
+  <div id="signedOutView" class="signed-out" hidden>
+    <p><span data-i18n="historySignedOut">You need to be signed in to see your history.</span> <a href="login.html" data-i18n="historySignIn">Sign in</a></p>
+  </div>
+
+  <div id="content" hidden>
+    <div class="totals-row">
+      <div class="stat"><div class="num mono" id="totalSpent">$0.00</div><div class="lbl" data-i18n="historyTotalSpent">Total spent</div></div>
+      <div class="stat"><div class="num mono" id="totalEnergy">0 kWh</div><div class="lbl" data-i18n="historyTotalEnergy">Total energy delivered</div></div>
+      <div class="stat"><div class="num mono" id="totalSessions">0</div><div class="lbl" data-i18n="historyTotalSessions">Completed sessions</div></div>
+    </div>
+
+    <div class="filters" id="filters">
+      <button class="chip-btn active" data-filter="all" data-i18n="historyFilterAll">All</button>
+      <button class="chip-btn" data-filter="completed" data-i18n="historyFilterCompleted">Completed</button>
+      <button class="chip-btn" data-filter="active" data-i18n="historyFilterActive">In progress</button>
+      <button class="chip-btn" data-filter="reserved" data-i18n="historyFilterReserved">Reserved</button>
+      <button class="chip-btn" data-filter="cancelled" data-i18n="historyFilterCancelled">Cancelled</button>
+    </div>
+
+    <div id="loading" class="loading" data-i18n="historyLoading">Loading your history…</div>
+    <div id="list"></div>
+    <div class="empty" id="emptyState" hidden data-i18n="historyEmpty">Nothing here yet — reserve a charger to start your history.</div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/i18n.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+
+  let theme = params.get('theme') === 'day' ? 'day' : 'night';
+  document.documentElement.setAttribute('data-theme', theme);
+  params.set('theme', theme);
+
+  // ---- language, carried across pages via the ?lang= param ----
+  let lang = VoltSpotI18n.getLang(params);
+  params.set('lang', lang);
+  VoltSpotI18n.apply(lang);
+
+  function updateNavLinks(){
+    document.getElementById('backLink').href = 'menu.html?' + params.toString();
+    document.getElementById('logoLink').href = 'menu.html?' + params.toString();
+    document.getElementById('settingsLink').href = 'settings.html?' + params.toString();
+  }
+
+  const themeToggle = document.getElementById('themeToggle');
+  themeToggle.textContent = theme === 'day' ? '🌙' : '☀️';
+  themeToggle.addEventListener('click', () => {
+    theme = theme === 'day' ? 'night' : 'day';
+    document.documentElement.setAttribute('data-theme', theme);
+    themeToggle.textContent = theme === 'day' ? '🌙' : '☀️';
+    params.set('theme', theme);
+    window.history.replaceState({}, '', 'history.html?' + params.toString());
+    updateNavLinks();
+  });
+
+  const email = params.get('email');
+  const plate = params.get('plate');
+  if(plate){
+    document.getElementById('plateChip').textContent = plate;
+    document.getElementById('plateChip').hidden = false;
+  }
+  updateNavLinks();
+
+  document.getElementById('logoutLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    VoltSpotAPI.logout(theme);
+  });
+
+  if(!email){
+    document.getElementById('signedOutView').hidden = false;
+  } else {
+    document.getElementById('content').hidden = false;
+    loadHistory();
+  }
+
+  let allSessions = [];
+
+  function fmtDate(iso){
+    if(!iso) return '—';
+    return new Date(iso).toLocaleString(undefined, { dateStyle:'medium', timeStyle:'short' });
+  }
+  function fmtDuration(sec){
+    sec = Number(sec) || 0;
+    const m = Math.floor(sec/60), s = sec % 60;
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+
+  async function loadHistory(){
+    try {
+      const { sessions, totals } = await VoltSpotAPI.getHistory(email);
+      allSessions = sessions;
+      document.getElementById('totalSpent').textContent = '$' + Number(totals.totalSpent || 0).toFixed(2);
+      document.getElementById('totalEnergy').textContent = Number(totals.totalEnergyKwh || 0).toFixed(1) + ' kWh';
+      document.getElementById('totalSessions').textContent = totals.completedCount || 0;
+      renderList('all');
+    } catch (err) {
+      document.getElementById('loading').textContent = VoltSpotI18n.t(lang, 'historyLoadFailed') + ': ' + err.message;
+    }
+  }
+
+  const historyStatusLabel = {
+    completed: () => VoltSpotI18n.t(lang, 'statusCompleted'),
+    active: () => VoltSpotI18n.t(lang, 'statusActive'),
+    reserved: () => VoltSpotI18n.t(lang, 'statusReserved'),
+    cancelled: () => VoltSpotI18n.t(lang, 'statusCancelled'),
+  };
+
+  function renderList(filter){
+    document.getElementById('loading').hidden = true;
+    const list = document.getElementById('list');
+    const empty = document.getElementById('emptyState');
+    list.innerHTML = '';
+
+    const rows = filter === 'all' ? allSessions : allSessions.filter(s => s.status === filter);
+    empty.hidden = rows.length > 0;
+
+    rows.forEach(s => {
+      const div = document.createElement('div');
+      div.className = 'entry';
+      const canDownload = s.status === 'completed';
+      const target = new URLSearchParams(params);
+      target.set('station', s.station_name);
+      target.set('connector', s.connector || '');
+      target.set('kw', s.kw || '');
+      target.set('price', s.price_per_kwh);
+      target.set('sessionId', s.id);
+      const statusLabel = historyStatusLabel[s.status] ? historyStatusLabel[s.status]() : s.status;
+
+      div.innerHTML = `
+        <div class="entry-top">
+          <div>
+            <div class="name">${s.station_name}</div>
+            <div class="meta">${s.connector || '—'} · ${s.kw ? s.kw + 'kW' : '—'} · $${Number(s.price_per_kwh).toFixed(2)}/kWh</div>
+            <div class="meta">${VoltSpotI18n.t(lang, 'historyReserved')} ${fmtDate(s.reserved_at)}</div>
+          </div>
+          <span class="status-pill ${s.status}">${statusLabel}</span>
+        </div>
+        <div class="entry-grid">
+          <div class="cell">${VoltSpotI18n.t(lang, 'historyEnergy')}<b>${Number(s.energy_kwh || 0).toFixed(1)} kWh</b></div>
+          <div class="cell">${VoltSpotI18n.t(lang, 'historyDuration')}<b>${fmtDuration(s.duration_sec)}</b></div>
+          <div class="cell">${VoltSpotI18n.t(lang, 'historyTotal')}<b>$${Number(s.total_cost || 0).toFixed(2)}</b></div>
+        </div>
+        <div class="entry-actions">
+          ${canDownload ? `<a class="btn-mini primary" href="${VoltSpotAPI.receiptUrl(s.id)}" download>${VoltSpotI18n.t(lang, 'historyReceiptBtn')}</a>` : ''}
+          ${s.status === 'reserved' ? `<a class="btn-mini" href="navigate.html?${target.toString()}">${VoltSpotI18n.t(lang, 'historyResumeTrip')}</a>` : ''}
+          ${s.status === 'active' ? `<a class="btn-mini" href="pay.html?${(() => { target.set('connected','true'); return target.toString(); })()}">${VoltSpotI18n.t(lang, 'historyResumeCharging')}</a>` : ''}
+        </div>
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  document.getElementById('filters').addEventListener('click', (e) => {
+    if(!e.target.matches('.chip-btn')) return;
+    document.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    renderList(e.target.dataset.filter);
+  });
+</script>
+
+</body>
+</html>

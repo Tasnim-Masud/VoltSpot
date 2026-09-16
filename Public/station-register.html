@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoltSpot — Register your station</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#120D08; --ink:#120D08; --panel:#1D150E; --panel-2:#271C12;
+    --line: rgba(var(--amber-rgb),0.16);
+    --cyan:#FF7A33; --amber:#FFC53D; --fog:#D8CDBC; --white:#FFF8EF; --red:#E5484D; --green:#3ECF8E;
+    --cyan-rgb:255,122,51; --amber-rgb:255,197,61; --red-rgb:229,72,77;
+    --headerbg: rgba(18,13,8,0.9);
+  }
+  :root[data-theme="day"]{
+    --bg:#F3ECDC; --ink:#0F2A2E; --panel:#FFFFFF; --panel-2:#E4F1F0;
+    --cyan:#1CA7B8; --amber:#E8442F; --fog:#3F5A5F; --white:#0F2A2E; --red:#C81E3A; --green:#1E8E5A;
+    --cyan-rgb:28,167,184; --amber-rgb:232,68,47; --red-rgb:200,30,58;
+    --headerbg: rgba(243,236,220,0.88);
+  }
+  [data-theme] *{ transition: background-color .25s ease, border-color .25s ease, color .25s ease; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--fog); font-family:'Inter','Noto Sans Bengali',sans-serif; line-height:1.5; min-height:100vh; }
+  h1,h2,h3{ font-family:'Space Grotesk','Noto Sans Bengali',sans-serif; color:var(--white); letter-spacing:-0.02em; }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+  a{ color:inherit; text-decoration:none; }
+  .wrap{ max-width:680px; margin:0 auto; padding:0 24px 80px; }
+
+  header.app{ position:sticky; top:0; z-index:20; background:var(--headerbg); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+  .app-nav{ max-width:680px; margin:0 auto; padding:0 24px; height:70px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .logo{ display:flex; align-items:center; gap:10px; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:1.1rem; color:var(--white); }
+  .logo .bolt{ width:22px; height:22px; display:grid; place-items:center; color:var(--ink); background:var(--amber); border-radius:6px; font-size:14px; font-weight:700; }
+  .back{ display:flex; align-items:center; gap:8px; font-size:0.88rem; color:var(--fog); transition:color .2s; }
+  .back:hover{ color:var(--white); }
+  .theme-toggle{
+    display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:50%;
+    border:1px solid var(--line); background:var(--panel-2); color:var(--white); font-size:1rem; cursor:pointer;
+  }
+
+  .page-head{ padding:36px 0 24px; }
+  .eyebrow{ display:inline-flex; align-items:center; gap:8px; font-family:'JetBrains Mono', monospace; font-size:0.74rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--amber); border:1px solid rgba(var(--amber-rgb),0.3); padding:5px 12px; border-radius:999px; margin-bottom:14px; }
+  .page-head h1{ font-size:1.9rem; margin-bottom:8px; }
+  .page-head p{ font-size:0.95rem; }
+
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:28px; margin-bottom:20px; }
+  .card h3{ font-size:1rem; margin-bottom:4px; }
+  .card .card-sub{ font-size:0.82rem; opacity:0.8; margin-bottom:18px; }
+
+  .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:640px){ .grid-2{ grid-template-columns:1fr; } }
+
+  label{ display:block; font-size:0.8rem; font-weight:500; color:var(--white); margin-bottom:8px; margin-top:18px; }
+  .grid-2 > div label:first-of-type, .field:first-child label{ margin-top:0; }
+  input, select{
+    width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--white);
+    padding:12px 14px; border-radius:10px; font-size:0.95rem; font-family:'Inter', 'Noto Sans Bengali', sans-serif;
+  }
+  input#username{ font-family:'JetBrains Mono', monospace; }
+  input.bn-field{ font-family:'Noto Sans Bengali', 'Inter', sans-serif; }
+  .bn-badge{
+    display:inline-flex; align-items:center; font-size:0.68rem; font-weight:700; letter-spacing:0.03em;
+    color:var(--amber); background:rgba(var(--amber-rgb),0.12); border:1px solid rgba(var(--amber-rgb),0.3);
+    padding:2px 8px; border-radius:999px; margin-left:8px; vertical-align:middle;
+  }
+  input:focus, select:focus{ outline:none; border-color:var(--amber); box-shadow:0 0 0 3px rgba(var(--amber-rgb),0.15); }
+  .hint{ font-size:0.74rem; color:var(--fog); opacity:0.75; margin-top:6px; }
+
+  .btn-secondary{
+    margin-top:10px; background:var(--panel-2); border:1px solid var(--line); color:var(--white);
+    padding:10px 14px; border-radius:8px; font-size:0.82rem; cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  .btn-secondary:hover{ border-color:var(--cyan); }
+
+  .btn-primary{
+    width:100%; margin-top:8px; background:var(--amber); color:var(--ink); border:none;
+    padding:15px 20px; border-radius:10px; font-weight:600; font-size:0.98rem;
+    font-family:'Inter', sans-serif; cursor:pointer; transition:transform .2s, box-shadow .2s;
+  }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 10px 28px rgba(var(--amber-rgb),0.22); }
+  .btn-primary:disabled{ opacity:0.6; cursor:not-allowed; transform:none; box-shadow:none; }
+
+  .error{ color:var(--red); font-size:0.85rem; margin-top:14px; text-align:center; min-height:1.2em; }
+  .foot-note{ text-align:center; font-size:0.85rem; color:var(--fog); opacity:0.85; margin-top:18px; }
+  .foot-note a{ color:var(--cyan); text-decoration:underline; }
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="app-nav">
+    <a href="menu.html" class="logo" id="logoLink"><span class="bolt">⚡</span>VoltSpot</a>
+    <a href="station-login.html" class="back" id="backLink">← Station sign-in</a>
+    <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle day/night mode">🌙</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="page-head">
+    <span class="eyebrow">New station</span>
+    <h1>Register your charger</h1>
+    <p>Create an account for your charging station. It'll show up on the Find page immediately, and you can update its price and availability any time.</p>
+  </div>
+
+  <form id="registerForm">
+    <div class="card">
+      <h3>Account</h3>
+      <div class="card-sub">This is how you'll sign in later — not shown to drivers.</div>
+      <label for="username">Station username</label>
+      <input type="text" id="username" placeholder="e.g. my-street-charger" required autocomplete="username">
+      <div class="hint">Lowercase letters, numbers, and hyphens only.</div>
+
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="At least 8 characters" required autocomplete="new-password">
+    </div>
+
+    <div class="card">
+      <h3>Station details</h3>
+      <div class="card-sub">What drivers will see on the Find page.</div>
+
+      <label for="displayName">Station name</label>
+      <input type="text" id="displayName" placeholder="e.g. Riverside Fast Charger" required>
+
+      <label for="displayNameBn">Station name <span class="bn-badge">বাংলা · optional</span></label>
+      <input type="text" id="displayNameBn" class="bn-field" placeholder="উদাহরণ: রিভারসাইড ফাস্ট চার্জার">
+      <div class="hint">Shown instead of the English name when a driver switches the app to বাংলা. Leave blank to always show the English name.</div>
+
+      <label for="sub">Address / location description</label>
+      <input type="text" id="sub" placeholder="e.g. 123 River Road, near the bridge">
+
+      <label for="subBn">Address <span class="bn-badge">বাংলা · optional</span></label>
+      <input type="text" id="subBn" class="bn-field" placeholder="উদাহরণ: ১২৩ রিভার রোড, ব্রিজের কাছে">
+
+      <div class="grid-2">
+        <div>
+          <label for="type">Power type</label>
+          <select id="type">
+            <option value="dc">DC fast charging</option>
+            <option value="ac">AC (slower)</option>
+          </select>
+        </div>
+        <div>
+          <label for="connector">Connector type</label>
+          <input type="text" id="connector" placeholder="e.g. CCS">
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <label for="kw">Charging speed (kW)</label>
+          <input type="number" id="kw" step="1" min="1" placeholder="e.g. 60" required>
+        </div>
+        <div>
+          <label for="price">Price per kWh ($)</label>
+          <input type="number" id="price" step="0.01" min="0" placeholder="e.g. 0.40" required>
+        </div>
+      </div>
+
+      <label for="hours">Hours</label>
+      <input type="text" id="hours" placeholder="e.g. Open 24 hours">
+
+      <label for="hoursBn">Hours <span class="bn-badge">বাংলা · optional</span></label>
+      <input type="text" id="hoursBn" class="bn-field" placeholder="উদাহরণ: ২৪ ঘণ্টা খোলা">
+
+      <div class="grid-2">
+        <div>
+          <label for="phone">Phone (optional)</label>
+          <input type="text" id="phone" placeholder="e.g. 555-0100">
+        </div>
+        <div>
+          <label for="url">Website (optional)</label>
+          <input type="text" id="url" placeholder="e.g. https://...">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Location</h3>
+      <div class="card-sub">Needed so drivers get accurate directions and drive-time estimates.</div>
+      <div class="grid-2">
+        <div>
+          <label for="lat">Latitude</label>
+          <input type="number" id="lat" step="any" placeholder="e.g. 24.3745">
+        </div>
+        <div>
+          <label for="lng">Longitude</label>
+          <input type="number" id="lng" step="any" placeholder="e.g. 88.6042">
+        </div>
+      </div>
+      <button type="button" class="btn-secondary" id="useLocationBtn">📍 Use my current location</button>
+    </div>
+
+    <button type="submit" class="btn-primary" id="submitBtn">Create station account</button>
+    <div class="error" id="formError"></div>
+    <p class="foot-note">Already registered? <a href="station-login.html" id="signinLink">Sign in instead</a></p>
+  </form>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  let theme = params.get('theme') === 'day' ? 'day' : 'night';
+  document.documentElement.setAttribute('data-theme', theme);
+  params.set('theme', theme);
+
+  function updateLinks(){
+    document.getElementById('logoLink').href = 'menu.html?' + params.toString();
+    document.getElementById('backLink').href = 'station-login.html?' + params.toString();
+    document.getElementById('signinLink').href = 'station-login.html?' + params.toString();
+  }
+  updateLinks();
+
+  const themeToggle = document.getElementById('themeToggle');
+  themeToggle.textContent = theme === 'day' ? '🌙' : '☀️';
+  themeToggle.addEventListener('click', () => {
+    theme = theme === 'day' ? 'night' : 'day';
+    document.documentElement.setAttribute('data-theme', theme);
+    themeToggle.textContent = theme === 'day' ? '🌙' : '☀️';
+    params.set('theme', theme);
+    window.history.replaceState({}, '', 'station-register.html?' + params.toString());
+    updateLinks();
+  });
+
+  document.getElementById('useLocationBtn').addEventListener('click', () => {
+    if(!('geolocation' in navigator)) return;
+    navigator.geolocation.getCurrentPosition((pos) => {
+      document.getElementById('lat').value = pos.coords.latitude.toFixed(6);
+      document.getElementById('lng').value = pos.coords.longitude.toFixed(6);
+    });
+  });
+
+  const form = document.getElementById('registerForm');
+  const formError = document.getElementById('formError');
+  const submitBtn = document.getElementById('submitBtn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    formError.textContent = '';
+
+    const username = document.getElementById('username').value.trim().toLowerCase();
+    const password = document.getElementById('password').value;
+    const displayName = document.getElementById('displayName').value.trim();
+    const displayNameBn = document.getElementById('displayNameBn').value.trim();
+    const sub = document.getElementById('sub').value.trim();
+    const subBn = document.getElementById('subBn').value.trim();
+    const type = document.getElementById('type').value;
+    const connector = document.getElementById('connector').value.trim();
+    const kw = document.getElementById('kw').value;
+    const price = document.getElementById('price').value;
+    const hours = document.getElementById('hours').value.trim();
+    const hoursBn = document.getElementById('hoursBn').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const url = document.getElementById('url').value.trim();
+    const lat = document.getElementById('lat').value;
+    const lng = document.getElementById('lng').value;
+
+    if(!/^[a-z0-9-]{3,40}$/.test(username)){
+      formError.textContent = 'Username must be 3-40 characters: lowercase letters, numbers, and hyphens only.';
+      return;
+    }
+    if(password.length < 8){
+      formError.textContent = 'Password must be at least 8 characters.';
+      return;
+    }
+    if(!displayName){
+      formError.textContent = 'Station name is required.';
+      return;
+    }
+    if(!kw || Number(kw) <= 0){
+      formError.textContent = 'Enter a valid charging speed.';
+      return;
+    }
+    if(price === '' || Number(price) < 0){
+      formError.textContent = 'Enter a valid price per kWh.';
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating account…';
+    try {
+      const { token, station } = await VoltSpotAPI.stationRegister({
+        username, password, displayName, displayNameBn, sub, subBn, type, connector,
+        kw: Number(kw), pricePerKwh: Number(price), hours, hoursBn, phone, url,
+        lat: lat !== '' ? Number(lat) : undefined,
+        lng: lng !== '' ? Number(lng) : undefined,
+      });
+      const target = new URLSearchParams();
+      target.set('theme', theme);
+      target.set('stationId', station.id);
+      target.set('token', token);
+      window.location.href = 'station-dashboard.html?' + target.toString();
+    } catch (err) {
+      formError.textContent = err.message || 'Could not register this station.';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create station account';
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoltSpot — Navigate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#120D08; --ink:#120D08; --panel:#1D150E; --panel-2:#271C12;
+    --line: rgba(var(--amber-rgb),0.16);
+    --cyan:#FF7A33; --amber:#FFC53D; --fog:#D8CDBC; --white:#FFF8EF; --red:#E5484D;
+    --cyan-rgb:255,122,51; --amber-rgb:255,197,61; --red-rgb:229,72,77; --gridline-rgb:255,255,255;
+    --headerbg: rgba(18,13,8,0.9);
+    --glow1: rgba(var(--cyan-rgb),0.06); --glow2: rgba(var(--amber-rgb),0.05);
+    --radius:14px;
+  }
+  :root[data-theme="day"]{
+    --bg:#F3ECDC; --ink:#0F2A2E; --panel:#FFFFFF; --panel-2:#E4F1F0;
+    --cyan:#1CA7B8; --amber:#E8442F; --fog:#3F5A5F; --white:#0F2A2E; --red:#C81E3A;
+    --cyan-rgb:28,167,184; --amber-rgb:232,68,47; --red-rgb:200,30,58; --gridline-rgb:15,42,46;
+    --headerbg: rgba(243,236,220,0.88);
+    --glow1: rgba(var(--cyan-rgb),0.08); --glow2: rgba(var(--amber-rgb),0.06);
+  }
+  [data-theme] *{ transition: background-color .25s ease, border-color .25s ease, color .25s ease; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--fog); font-family:'Inter','Noto Sans Bengali',sans-serif; line-height:1.5; }
+  h1,h2,h3{ font-family:'Space Grotesk','Noto Sans Bengali',sans-serif; color:var(--white); letter-spacing:-0.02em; }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+  a{ color:inherit; text-decoration:none; }
+  .wrap{ max-width:560px; margin:0 auto; padding:0 24px 60px; }
+
+  header.app{ position:sticky; top:0; z-index:20; background:var(--headerbg); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+  .app-nav{ max-width:560px; margin:0 auto; padding:0 24px; height:70px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .logo{ display:flex; align-items:center; gap:10px; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:1.1rem; color:var(--white); }
+  .logo .bolt{ width:22px; height:22px; display:grid; place-items:center; color:var(--ink); background:var(--cyan); border-radius:6px; font-size:14px; font-weight:700; }
+  .back{ display:flex; align-items:center; gap:8px; font-size:0.88rem; color:var(--fog); transition:color .2s; }
+  .back:hover{ color:var(--white); }
+  .plate-chip{ display:flex; align-items:center; gap:8px; font-size:0.78rem; color:var(--white); background:var(--panel-2); border:1px solid var(--line); padding:7px 14px; border-radius:999px; }
+  .plate-chip::before{ content:""; width:6px; height:6px; border-radius:50%; background:var(--cyan); }
+  .theme-toggle{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:38px; height:38px; border-radius:50%; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--white); font-size:1rem; cursor:pointer;
+    flex-shrink:0; transition:border-color .2s, transform .2s;
+  }
+  .theme-toggle:hover{ border-color:var(--cyan); transform:translateY(-1px); }
+
+  .page-head{ padding:36px 0 24px; }
+  .eyebrow{ display:inline-flex; align-items:center; gap:8px; font-family:'JetBrains Mono', monospace; font-size:0.74rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--cyan); border:1px solid rgba(var(--cyan-rgb),0.3); padding:5px 12px; border-radius:999px; margin-bottom:14px; }
+  .page-head h1{ font-size:1.9rem; margin-bottom:8px; }
+  .page-head p{ font-size:0.95rem; }
+
+  .map{
+    height:280px; border-radius:20px; margin-bottom:20px; position:relative; overflow:hidden;
+    background:var(--panel-2); border:1px solid var(--line);
+  }
+  #gmap{ position:absolute; inset:0; }
+  #gmapEmbed{ position:absolute; inset:0; width:100%; height:100%; border:0; }
+  .map-fallback{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    text-align:center; padding:20px; font-size:0.82rem; color:var(--fog);
+    background:
+      radial-gradient(circle at 30% 30%, rgba(var(--cyan-rgb),0.18), transparent 55%),
+      radial-gradient(circle at 75% 65%, rgba(var(--amber-rgb),0.14), transparent 50%),
+      repeating-linear-gradient(0deg, rgba(var(--gridline-rgb),0.03) 0 1px, transparent 1px 26px),
+      repeating-linear-gradient(90deg, rgba(var(--gridline-rgb),0.03) 0 1px, transparent 1px 26px),
+      var(--panel-2);
+  }
+  @keyframes pulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(var(--cyan-rgb),0.35); } 50%{ box-shadow:0 0 0 6px rgba(var(--cyan-rgb),0); } }
+
+  .stat-row{ display:flex; gap:16px; margin-bottom:20px; }
+  .stat{ flex:1; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px; text-align:center; }
+  .stat .num{ font-family:'JetBrains Mono', monospace; font-size:1.5rem; color:var(--white); font-weight:500; }
+  .stat .lbl{ font-size:0.75rem; opacity:0.8; margin-top:4px; }
+
+  .instruction{
+    display:flex; align-items:center; gap:14px;
+    background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px 20px; margin-bottom:20px;
+  }
+  .instruction .arrow{ font-size:1.6rem; color:var(--cyan); }
+  .instruction .text{ color:var(--white); font-size:0.95rem; }
+  .instruction .sub{ font-size:0.78rem; color:var(--fog); margin-top:2px; }
+
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:20px; margin-bottom:20px; }
+  .summary-row{ display:flex; justify-content:space-between; font-size:0.88rem; padding:7px 0; }
+  .summary-row span:last-child{ font-family:'JetBrains Mono', monospace; color:var(--white); }
+
+  .btn-primary{
+    width:100%; background:var(--cyan); color:var(--ink); border:none;
+    padding:15px 20px; border-radius:10px; font-weight:600; font-size:0.98rem;
+    font-family:'Inter', sans-serif; cursor:pointer; transition:transform .2s, box-shadow .2s;
+  }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 10px 28px rgba(var(--cyan-rgb),0.22); }
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="app-nav">
+    <a href="menu.html" class="logo" id="logoLink"><span class="bolt">⚡</span>VoltSpot</a>
+    <a href="reserve.html" class="back" id="backLink">← Reserve</a>
+    <span id="plateChip" class="plate-chip mono" hidden></span>
+    <a href="#" id="logoutLink" class="back" title="Log out">Log out</a>
+    <a href="#" id="settingsLink" class="theme-toggle" title="Settings" aria-label="Settings">⚙</a>
+    <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle day/night mode">🌙</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="page-head">
+    <span class="eyebrow" data-i18n="navigateEyebrow">Step 03 · Navigate</span>
+    <h1 data-i18n="navigateHeading">On your way</h1>
+    <p data-i18n="navigateSub">Turn-by-turn to your reserved charger, with live traffic folded in.</p>
+  </div>
+
+  <div class="map">
+    <div id="gmap"></div>
+    <iframe id="gmapEmbed" hidden loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Route map"></iframe>
+    <div class="map-fallback" id="mapFallback">
+      Loading map…
+    </div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat"><div class="num mono" id="etaStat">6 min</div><div class="lbl" data-i18n="navigateArrival">Arrival</div></div>
+    <div class="stat"><div class="num mono" id="distStat">1.8 mi</div><div class="lbl" data-i18n="navigateRemaining">Remaining</div></div>
+    <div class="stat"><div class="num mono" id="holdStat">--:--</div><div class="lbl" data-i18n="navigateHeldUntil">Held until</div></div>
+  </div>
+
+  <div class="instruction">
+    <span class="arrow">↰</span>
+    <div>
+      <div class="text" id="instructionText">Turn left onto Elm Street</div>
+      <div class="sub">Then continue for 0.6 mi</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="summary-row"><span data-i18n="navigateStationLabel">Charger</span><span id="sumStation">—</span></div>
+    <div class="summary-row"><span data-i18n="navigateConnectorLabel">Connector</span><span id="sumConnector">—</span></div>
+    <div class="summary-row"><span data-i18n="navigateSpeedLabel">Speed</span><span id="sumSpeed">—</span></div>
+  </div>
+
+  <button class="btn-primary" id="arrivedBtn" data-i18n="navigateArrivedBtn">I've arrived — start charging</button>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/gmaps-config.js"></script>
+<script src="js/i18n.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+
+  // ---- day/night theme, carried across pages via the ?theme= param ----
+  let theme = params.get('theme') === 'day' ? 'day' : 'night';
+  document.documentElement.setAttribute('data-theme', theme);
+  params.set('theme', theme);
+
+  // ---- language, carried across pages via the ?lang= param ----
+  let lang = VoltSpotI18n.getLang(params);
+  params.set('lang', lang);
+  VoltSpotI18n.apply(lang);
+
+  function updateNavLinks(){
+    document.getElementById('backLink').href = 'reserve.html?' + params.toString();
+    document.getElementById('logoLink').href = 'menu.html?' + params.toString();
+    document.getElementById('settingsLink').href = 'settings.html?' + params.toString();
+  }
+
+  const themeToggle = document.getElementById('themeToggle');
+  themeToggle.textContent = theme === 'day' ? '🌙' : '☀️';
+  themeToggle.addEventListener('click', () => {
+    theme = theme === 'day' ? 'night' : 'day';
+    document.documentElement.setAttribute('data-theme', theme);
+    themeToggle.textContent = theme === 'day' ? '🌙' : '☀️';
+    params.set('theme', theme);
+    window.history.replaceState({}, '', 'navigate.html?' + params.toString());
+    updateNavLinks();
+  });
+
+  const plate = params.get('plate');
+  const station = params.get('station') || 'Nearest available charger';
+  const connector = params.get('connector') || 'CCS';
+  const kw = params.get('kw') || '120';
+  const heldUntil = params.get('heldUntil');
+
+  if(plate){
+    document.getElementById('plateChip').textContent = plate;
+    document.getElementById('plateChip').hidden = false;
+  }
+  updateNavLinks();
+
+  document.getElementById('logoutLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    VoltSpotAPI.logout(theme);
+  });
+
+  document.getElementById('sumStation').textContent = station;
+  document.getElementById('sumConnector').textContent = connector;
+  document.getElementById('sumSpeed').textContent = kw + 'kW';
+  document.getElementById('holdStat').textContent = heldUntil || '--:--';
+
+  const etaEl = document.getElementById('etaStat');
+  const distEl = document.getElementById('distStat');
+  const instructionEl = document.getElementById('instructionText');
+  const instructionSubEl = document.querySelector('.instruction .sub');
+
+  const destLat = parseFloat(params.get('lat'));
+  const destLng = parseFloat(params.get('lng'));
+  const sessionId = params.get('sessionId');
+  const hasDest = !isNaN(destLat) && !isNaN(destLng);
+
+  // ---- real turn-by-turn driving directions, live traffic, live location ----
+  let map, directionsService, directionsRenderer, watchId;
+
+  function stripHtml(html){
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  }
+
+  function renderRoute(maps, origin){
+    directionsService.route({
+      origin,
+      destination: { lat: destLat, lng: destLng },
+      travelMode: maps.TravelMode.DRIVING,
+      drivingOptions: { departureTime: new Date(), trafficModel: 'bestguess' },
+    }, (result, status) => {
+      if(status !== 'OK'){
+        instructionEl.textContent = VoltSpotI18n.t(lang, 'navigateCouldNotRoute');
+        return;
+      }
+      directionsRenderer.setDirections(result);
+      const leg = result.routes[0].legs[0];
+      const duration = leg.duration_in_traffic || leg.duration;
+      etaEl.textContent = duration.text;
+      distEl.textContent = leg.distance.text;
+      if(leg.steps && leg.steps.length){
+        instructionEl.textContent = stripHtml(leg.steps[0].instructions);
+        instructionSubEl.textContent = leg.steps.length > 1
+          ? `${lang === 'bn' ? 'এরপর' : 'Then'} ${stripHtml(leg.steps[1].instructions).toLowerCase()}`
+          : (lang === 'bn' ? 'আপনার গন্তব্যে পৌঁছাচ্ছেন' : 'Arriving at your destination');
+      }
+    });
+  }
+
+  async function startLiveNavigation(){
+    if(!hasDest){
+      instructionEl.textContent = VoltSpotI18n.t(lang, 'navigateNoCoords');
+      document.getElementById('mapFallback').textContent = VoltSpotI18n.t(lang, 'navigateNoMapFallback');
+      return;
+    }
+    if(!('geolocation' in navigator)){
+      instructionEl.textContent = VoltSpotI18n.t(lang, 'navigateNoGeoSupport');
+      return;
+    }
+    try {
+      const maps = await loadGoogleMaps(lang);
+      document.getElementById('mapFallback').style.display = 'none';
+      map = new maps.Map(document.getElementById('gmap'), {
+        center: { lat: destLat, lng: destLng },
+        zoom: 13,
+        disableDefaultUI: true,
+        styles: theme === 'night' ? [
+          { elementType: 'geometry', stylers: [{ color: '#1D150E' }] },
+          { elementType: 'labels.text.fill', stylers: [{ color: '#D8CDBC' }] },
+          { elementType: 'labels.text.stroke', stylers: [{ color: '#120D08' }] },
+        ] : [],
+      });
+      directionsService = new maps.DirectionsService();
+      directionsRenderer = new maps.DirectionsRenderer({ map, suppressMarkers: false });
+
+      // First fix, then keep the route updated as the driver moves.
+      navigator.geolocation.getCurrentPosition(
+        (pos) => renderRoute(maps, { lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => { instructionEl.textContent = VoltSpotI18n.t(lang, 'navigateEnableLocation'); },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => renderRoute(maps, { lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => {},
+        { enableHighAccuracy: true, maximumAge: 15000 }
+      );
+    } catch (err){
+      // No API key configured, or the Maps JS SDK failed to load — fall
+      // back to a plain Google Maps EMBED (a simple iframe, no API key or
+      // billing required at all) so there's still a real, live map with a
+      // real route, just without JS-driven live traffic/turn-by-turn text.
+      const embedFrame = document.getElementById('gmapEmbed');
+      const fallback = document.getElementById('mapFallback');
+
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const origin = `${pos.coords.latitude},${pos.coords.longitude}`;
+        const dest = `${destLat},${destLng}`;
+        embedFrame.src = `https://maps.google.com/maps?saddr=${origin}&daddr=${dest}&output=embed`;
+        embedFrame.hidden = false;
+        fallback.style.display = 'none';
+
+        // Still show a straight-line ETA/distance estimate, since we don't
+        // have the Directions API without a key.
+        const R = 3958.8, toRad = d => d * Math.PI/180;
+        const dLat = toRad(destLat-pos.coords.latitude), dLon = toRad(destLng-pos.coords.longitude);
+        const a = Math.sin(dLat/2)**2 + Math.cos(toRad(pos.coords.latitude))*Math.cos(toRad(destLat))*Math.sin(dLon/2)**2;
+        const miles = R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const mins = Math.round(miles / 30 * 60);
+        etaEl.textContent = `~${mins} min`;
+        distEl.textContent = `${miles.toFixed(1)} mi`;
+        instructionEl.textContent = VoltSpotI18n.t(lang, 'navigateHeadToward') + ' ' + station;
+        instructionSubEl.textContent = VoltSpotI18n.t(lang, 'navigateStraightLineNote');
+      }, () => {
+        // No location permission — still show a plain map centered on the
+        // destination so the page isn't blank.
+        embedFrame.src = `https://maps.google.com/maps?q=${destLat},${destLng}&z=14&output=embed`;
+        embedFrame.hidden = false;
+        fallback.style.display = 'none';
+        instructionEl.textContent = VoltSpotI18n.t(lang, 'navigateEnableForRoute');
+      }, { enableHighAccuracy:true });
+    }
+  }
+  startLiveNavigation();
+
+  document.getElementById('arrivedBtn').addEventListener('click', async () => {
+    if(watchId) navigator.geolocation.clearWatch(watchId);
+    const target = new URLSearchParams(params);
+    target.set('connected', 'true');
+    try {
+      if(sessionId) await VoltSpotAPI.startSession(sessionId);
+    } catch (err) {
+      console.warn('Could not mark session active on backend:', err.message);
+    }
+    window.location.href = 'pay.html?' + target.toString();
+  });
+</script>
+
+</body>
+</html>

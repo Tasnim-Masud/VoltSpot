@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoltSpot — Sign in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#120D08; --ink:#120D08; --panel:#1D150E; --panel-2:#271C12;
+    --line: rgba(var(--amber-rgb),0.16);
+    --cyan:#FF7A33; --amber:#FFC53D; --fog:#D8CDBC; --white:#FFF8EF; --red:#E5484D;
+    --cyan-rgb:255,122,51; --amber-rgb:255,197,61; --red-rgb:229,72,77; --gridline-rgb:255,255,255;
+    --headerbg: rgba(18,13,8,0.9);
+    --glow1: rgba(var(--cyan-rgb),0.06); --glow2: rgba(var(--amber-rgb),0.05);
+    --radius:14px;
+  }
+  :root[data-theme="day"]{
+    --bg:#F3ECDC; --ink:#0F2A2E; --panel:#FFFFFF; --panel-2:#E4F1F0;
+    --cyan:#1CA7B8; --amber:#E8442F; --fog:#3F5A5F; --white:#0F2A2E; --red:#C81E3A;
+    --cyan-rgb:28,167,184; --amber-rgb:232,68,47; --red-rgb:200,30,58; --gridline-rgb:15,42,46;
+    --headerbg: rgba(243,236,220,0.88);
+    --glow1: rgba(var(--cyan-rgb),0.08); --glow2: rgba(var(--amber-rgb),0.06);
+  }
+  [data-theme] *{ transition: background-color .25s ease, border-color .25s ease, color .25s ease; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html, body{ height:100%; }
+  body{
+    background: var(--bg);
+    color:var(--fog);
+    font-family:'Inter', 'Noto Sans Bengali', sans-serif;
+    position:relative;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:""; position:fixed; inset:0;
+    background-image:
+      radial-gradient(circle at 15% 20%, var(--glow1), transparent 40%),
+      radial-gradient(circle at 85% 85%, var(--glow2), transparent 45%);
+    pointer-events:none;
+  }
+  h1,h2,h3{ font-family:'Space Grotesk', 'Noto Sans Bengali', sans-serif; color:var(--white); letter-spacing:-0.02em; }
+  a{ color:inherit; }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+
+  .theme-toggle{
+    position:fixed; top:20px; right:20px; z-index:30;
+    display:inline-flex; align-items:center; justify-content:center;
+    width:42px; height:42px; border-radius:50%; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--white); font-size:1.05rem; cursor:pointer;
+    transition:border-color .2s, transform .2s;
+  }
+  .theme-toggle:hover{ border-color:var(--cyan); transform:translateY(-1px); }
+  .settings-btn{
+    position:fixed; top:20px; right:72px; z-index:30;
+    display:inline-flex; align-items:center; gap:6px;
+    height:42px; padding:0 16px; border-radius:999px; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--white); font-size:0.85rem; font-weight:600; cursor:pointer;
+    transition:border-color .2s, transform .2s; font-family:'Inter','Noto Sans Bengali',sans-serif;
+  }
+  .settings-btn:hover{ border-color:var(--cyan); transform:translateY(-1px); }
+
+  /* ---------- full-viewport split layout ---------- */
+  .split{
+    min-height:100vh;
+    display:grid;
+    grid-template-columns: 1.15fr 460px;
+    position:relative; z-index:1;
+  }
+
+  /* left: brand panel, fills the rest of the screen on desktop */
+  .brand-panel{
+    background:var(--panel);
+    border-right:1px solid var(--line);
+    display:flex; flex-direction:column; justify-content:center;
+    padding:64px 72px;
+    position:relative; overflow:hidden;
+  }
+  .brand-content{ position:relative; z-index:2; max-width:520px; }
+  .logo-lg{
+    display:inline-flex; align-items:center; gap:12px;
+    font-family:'Space Grotesk', sans-serif; font-weight:700; font-size:2rem; color:var(--white);
+    text-decoration:none; margin-bottom:22px;
+  }
+  .logo-lg .bolt{
+    width:34px; height:34px; display:grid; place-items:center;
+    color:var(--ink); background:var(--cyan); border-radius:9px; font-size:19px; font-weight:700;
+  }
+  .brand-content h1{ font-size:clamp(1.7rem, 2.4vw, 2.3rem); line-height:1.15; margin-bottom:16px; }
+  .brand-content .tagline{ font-size:1.08rem; color:var(--fog); max-width:440px; margin-bottom:36px; }
+  .brand-features{ list-style:none; display:flex; flex-direction:column; gap:14px; }
+  .brand-features li{
+    display:flex; align-items:center; gap:12px; font-size:0.94rem; color:var(--fog);
+  }
+  .brand-features li::before{
+    content:"⚡"; width:26px; height:26px; flex-shrink:0; border-radius:50%;
+    background:rgba(var(--cyan-rgb),0.14); color:var(--cyan);
+    display:grid; place-items:center; font-size:0.8rem;
+  }
+
+  .rings{
+    position:absolute; top:50%; right:-140px; transform:translateY(-50%);
+    width:560px; height:560px; z-index:1; opacity:0.9; pointer-events:none;
+  }
+  .rings .hub{ fill:var(--amber); }
+  .rings .hub-hole{ fill:var(--panel); }
+
+  /* right: form panel, full height, form vertically centered */
+  .form-panel{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:48px 32px;
+    position:relative; z-index:1;
+  }
+
+  .card{
+    width:100%; max-width:400px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:36px 32px;
+    box-shadow:0 30px 60px rgba(0,0,0,0.35);
+    position:relative; z-index:1;
+    animation: rise .5s ease both;
+  }
+  @keyframes rise{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:translateY(0);} }
+
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:'JetBrains Mono', monospace; font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--cyan); border:1px solid rgba(var(--cyan-rgb),0.3); padding:5px 12px; border-radius:999px;
+    margin-bottom:16px;
+  }
+  .card h2{ font-size:1.5rem; margin-bottom:6px; }
+  .card p.sub{ font-size:0.92rem; color:var(--fog); margin-bottom:26px; }
+
+  label{
+    display:block; font-size:0.8rem; font-weight:500; color:var(--white);
+    margin-bottom:8px; margin-top:18px;
+  }
+  label:first-of-type{ margin-top:0; }
+  .hint{ font-size:0.74rem; color:var(--fog); opacity:0.75; margin-top:6px; }
+
+  input{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--white);
+    padding:13px 14px;
+    border-radius:10px;
+    font-size:0.95rem;
+    font-family:'Inter', sans-serif;
+    transition:border-color .2s, box-shadow .2s;
+  }
+  input#plate{ font-family:'JetBrains Mono', monospace; letter-spacing:0.06em; text-transform:uppercase; }
+  input:focus{
+    outline:none; border-color:var(--cyan);
+    box-shadow:0 0 0 3px rgba(var(--cyan-rgb),0.15);
+  }
+  input:invalid:not(:placeholder-shown){ border-color:var(--red); }
+
+  .error{
+    color:var(--red); font-size:0.78rem; margin-top:6px; min-height:1em;
+  }
+
+  .btn-primary{
+    width:100%; margin-top:28px;
+    background:var(--cyan); color:var(--ink); border:none;
+    padding:14px 20px; border-radius:10px; font-weight:600; font-size:0.98rem;
+    font-family:'Inter', sans-serif; cursor:pointer;
+    transition:transform .2s, box-shadow .2s;
+  }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 10px 28px rgba(var(--cyan-rgb),0.22); }
+  .btn-primary:active{ transform:translateY(0); }
+
+  .foot-note{
+    text-align:center; font-size:0.8rem; color:var(--fog); opacity:0.7; margin-top:20px;
+  }
+
+  .forgot-block{ margin-top:10px; }
+  .link-btn{
+    background:none; border:none; padding:0; cursor:pointer;
+    font-family:'Inter', sans-serif; font-size:0.8rem; color:var(--cyan);
+    text-decoration:underline; text-underline-offset:2px;
+  }
+  .link-btn:hover{ opacity:0.85; }
+  .forgot-result{
+    margin-top:10px; padding:12px 14px; border-radius:10px;
+    background:var(--panel-2); border:1px solid var(--line);
+    font-size:0.82rem; color:var(--white);
+  }
+  .forgot-result.err{ border-color:rgba(var(--red-rgb),0.4); color:var(--red); background:transparent; }
+  .forgot-result ul{ list-style:none; margin-top:6px; }
+  .forgot-result li{ padding:4px 0; font-family:'JetBrains Mono', monospace; }
+
+  @media (max-width: 980px){
+    .split{ grid-template-columns:1fr; min-height:auto; }
+    .brand-panel{
+      border-right:none; border-bottom:1px solid var(--line);
+      padding:40px 24px 32px; align-items:center; text-align:center;
+    }
+    .brand-content{ max-width:100%; }
+    .logo-lg{ justify-content:center; }
+    .brand-content .tagline{ margin-left:auto; margin-right:auto; }
+    .brand-features{ display:none; }
+    .rings{ display:none; }
+    .form-panel{ padding:32px 20px 56px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+
+<a href="#" class="settings-btn" id="settingsLink">⚙ <span id="langBadge">EN</span></a>
+<button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle day/night mode">🌙</button>
+
+<div class="split">
+  <div class="brand-panel">
+    <svg class="rings" viewBox="0 0 400 400" aria-hidden="true">
+      <circle cx="200" cy="200" r="180" fill="none" stroke="var(--cyan)" stroke-opacity="0.10" stroke-width="1.5"/>
+      <circle cx="200" cy="200" r="166" fill="none" stroke="var(--amber)" stroke-opacity="0.15" stroke-width="1.5"/>
+      <circle cx="200" cy="200" r="152" fill="none" stroke="var(--cyan)" stroke-opacity="0.20" stroke-width="1.5"/>
+      <circle cx="200" cy="200" r="138" fill="none" stroke="var(--amber)" stroke-opacity="0.10" stroke-width="1.5"/>
+      <circle cx="200" cy="200" r="124" fill="none" stroke="var(--cyan)" stroke-opacity="0.15" stroke-width="1.5"/>
+      <circle cx="200" cy="200" r="110" fill="none" stroke="var(--amber)" stroke-opacity="0.20" stroke-width="1.5"/>
+      <circle cx="200" cy="200" r="96" fill="none" stroke="var(--cyan)" stroke-opacity="0.10" stroke-width="1.5"/>
+      <circle cx="200" cy="200" r="82" fill="none" stroke="var(--amber)" stroke-opacity="0.15" stroke-width="1.5"/>
+      <circle cx="200" cy="200" r="68" fill="none" stroke="var(--cyan)" stroke-opacity="0.20" stroke-width="1.5"/>
+      <circle cx="200" cy="200" r="54" fill="none" stroke="var(--amber)" stroke-opacity="0.10" stroke-width="1.5"/>
+      <circle cx="200" cy="200" r="40" fill="none" stroke="var(--cyan)" stroke-opacity="0.15" stroke-width="1.5"/>
+      <circle class="hub" cx="200" cy="200" r="26" opacity="0.9"/>
+      <circle class="hub-hole" cx="200" cy="200" r="6"/>
+    </svg>
+    <div class="brand-content">
+      <a href="menu.html" class="logo-lg" id="logoLink"><span class="bolt">⚡</span><span data-i18n="brand">VoltSpot</span></a>
+      <h1 data-i18n="loginBrandHeading">Stop circling the block for an EV charger.</h1>
+      <p class="tagline" data-i18n="loginBrandTagline">VoltSpot shows real-time charger availability, lets you reserve and navigate to a spot, and starts billing automatically the moment you plug in.</p>
+      <ul class="brand-features">
+        <li data-i18n="loginFeature1">Live charger status, city-wide</li>
+        <li data-i18n="loginFeature2">Reserve a spot before you leave home</li>
+        <li data-i18n="loginFeature3">Turn-by-turn navigation, straight to the charger</li>
+        <li data-i18n="loginFeature4">Automatic billing when you plug in and unplug</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="form-panel">
+    <form class="card" id="loginForm" novalidate>
+      <span class="eyebrow"><span class="mono">●</span> <span data-i18n="loginEyebrow">Driver sign-in</span></span>
+      <h2 data-i18n="loginHeading">Welcome back.</h2>
+      <p class="sub" data-i18n="loginSub">Sign in with your email and your car's plate number so VoltSpot can match you to your vehicle.</p>
+
+      <label for="email" data-i18n="loginEmailLabel">Email address</label>
+      <input type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email">
+      <div class="error" id="emailError"></div>
+
+      <label for="plate" data-i18n="loginPlateLabel">Car plate number</label>
+      <input type="text" id="plate" name="plate" placeholder="AB 1234 CD" required autocomplete="off" minlength="4" maxlength="12">
+      <div class="hint" data-i18n="loginPlateHint">Used to confirm it's your car at the charger.</div>
+      <div class="error" id="plateError"></div>
+
+      <div class="forgot-block">
+        <button type="button" class="link-btn" id="forgotEmailBtn" data-i18n="loginForgot">Forgot which email you used?</button>
+        <div id="forgotResult" class="forgot-result" hidden></div>
+      </div>
+
+      <div class="error" id="formError"></div>
+      <button type="submit" class="btn-primary" id="submitBtn" data-i18n="loginSubmit">Continue to menu</button>
+      <p class="foot-note" data-i18n="loginFootNote">No account yet? Signing in creates one automatically. We remember your email and plate every time you sign in.</p>
+      <p class="foot-note"><span data-i18n="loginOwnCharger">Own a charger?</span> <a href="station-login.html" id="stationLink" style="color:var(--cyan); text-decoration:underline;" data-i18n="loginSignInStation">Sign in as a station operator</a></p>
+    </form>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/i18n.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+
+  // ---- day/night theme, carried across pages via the ?theme= param ----
+  let theme = params.get('theme') === 'day' ? 'day' : 'night';
+  document.documentElement.setAttribute('data-theme', theme);
+  params.set('theme', theme);
+
+  // ---- language, carried across pages via the ?lang= param ----
+  let lang = VoltSpotI18n.getLang(params);
+  params.set('lang', lang);
+  VoltSpotI18n.apply(lang);
+  document.getElementById('langBadge').textContent = lang === 'bn' ? 'বাং' : 'EN';
+
+  document.getElementById('settingsLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    window.location.href = 'settings.html?' + params.toString();
+  });
+
+  document.getElementById('logoLink').href = 'menu.html?' + params.toString();
+  document.getElementById('stationLink').href = 'station-login.html?' + params.toString();
+
+  const themeToggle = document.getElementById('themeToggle');
+  themeToggle.textContent = theme === 'day' ? '🌙' : '☀️';
+  themeToggle.addEventListener('click', () => {
+    theme = theme === 'day' ? 'night' : 'day';
+    document.documentElement.setAttribute('data-theme', theme);
+    themeToggle.textContent = theme === 'day' ? '🌙' : '☀️';
+    params.set('theme', theme);
+    window.history.replaceState({}, '', 'login.html?' + params.toString());
+    document.getElementById('logoLink').href = 'menu.html?' + params.toString();
+    document.getElementById('stationLink').href = 'station-login.html?' + params.toString();
+  });
+
+  const form = document.getElementById('loginForm');
+  const emailInput = document.getElementById('email');
+  const plateInput = document.getElementById('plate');
+  const emailError = document.getElementById('emailError');
+  const plateError = document.getElementById('plateError');
+
+  plateInput.addEventListener('input', () => {
+    plateInput.value = plateInput.value.toUpperCase();
+  });
+
+  const formError = document.getElementById('formError');
+  const submitBtn = document.getElementById('submitBtn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    emailError.textContent = '';
+    plateError.textContent = '';
+    formError.textContent = '';
+    let valid = true;
+
+    const email = emailInput.value.trim();
+    const plate = plateInput.value.trim();
+
+    if(!email || !/^\S+@\S+\.\S+$/.test(email)){
+      emailError.textContent = VoltSpotI18n.t(lang, 'loginEmailError');
+      valid = false;
+    }
+    if(!plate || plate.replace(/\s/g,'').length < 4){
+      plateError.textContent = VoltSpotI18n.t(lang, 'loginPlateError');
+      valid = false;
+    }
+    if(!valid) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = VoltSpotI18n.t(lang, 'loginSubmitting');
+    let blocked = false;
+    try {
+      // Persist this sign-in on the backend — this is what "remembers"
+      // the driver every time they enter, and links plate -> email.
+      await VoltSpotAPI.login(email, plate);
+    } catch (err) {
+      if (err.status === 409) {
+        // This plate is already registered to a different email — refuse
+        // to continue, since one plate can only ever belong to one account.
+        formError.textContent = err.message;
+        blocked = true;
+      } else {
+        formError.textContent = 'Could not reach VoltSpot right now. Continuing offline.';
+        // Don't block the demo flow if the backend isn't running —
+        // just let them continue with the in-URL session as before.
+      }
+    }
+    submitBtn.disabled = false;
+    submitBtn.textContent = VoltSpotI18n.t(lang, 'loginSubmit');
+    if (blocked) return;
+
+    // Carry the driver's email + plate forward as query params so the
+    // rest of the app can show "signed in as ..." without a server session.
+    // Theme comes along too, so the mode they picked persists into the app.
+    const target = new URLSearchParams(params);
+    target.set('email', email);
+    target.set('plate', plate);
+    window.location.href = 'menu.html?' + target.toString();
+  });
+
+  // ---- "Forgot which email you used?" — look it up by plate number ----
+  const forgotBtn = document.getElementById('forgotEmailBtn');
+  const forgotResult = document.getElementById('forgotResult');
+
+  forgotBtn.addEventListener('click', async () => {
+    const plate = plateInput.value.trim();
+    if(!plate || plate.replace(/\s/g,'').length < 4){
+      forgotResult.hidden = false;
+      forgotResult.className = 'forgot-result err';
+      forgotResult.textContent = VoltSpotI18n.t(lang, 'loginForgotPrompt');
+      return;
+    }
+    forgotResult.hidden = false;
+    forgotResult.className = 'forgot-result';
+    forgotResult.textContent = VoltSpotI18n.t(lang, 'loginForgotLooking');
+    try {
+      const { matches } = await VoltSpotAPI.lookupEmailByPlate(plate);
+      forgotResult.innerHTML = VoltSpotI18n.t(lang, 'loginForgotFound') + '<ul>' +
+        matches.map(m => `<li>${m.maskedEmail}</li>`).join('') +
+        '</ul>';
+    } catch (err) {
+      forgotResult.className = 'forgot-result err';
+      forgotResult.textContent = err.message || 'No account found for that plate number.';
+    }
+  });
+</script>
+
+</body>
+</html>

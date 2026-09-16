@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoltSpot — Reserve a charger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#120D08; --ink:#120D08; --panel:#1D150E; --panel-2:#271C12;
+    --line: rgba(var(--amber-rgb),0.16);
+    --cyan:#FF7A33; --amber:#FFC53D; --fog:#D8CDBC; --white:#FFF8EF; --red:#E5484D;
+    --cyan-rgb:255,122,51; --amber-rgb:255,197,61; --red-rgb:229,72,77; --gridline-rgb:255,255,255;
+    --headerbg: rgba(18,13,8,0.9);
+    --glow1: rgba(var(--cyan-rgb),0.06); --glow2: rgba(var(--amber-rgb),0.05);
+    --radius:14px;
+  }
+  :root[data-theme="day"]{
+    --bg:#F3ECDC; --ink:#0F2A2E; --panel:#FFFFFF; --panel-2:#E4F1F0;
+    --cyan:#1CA7B8; --amber:#E8442F; --fog:#3F5A5F; --white:#0F2A2E; --red:#C81E3A;
+    --cyan-rgb:28,167,184; --amber-rgb:232,68,47; --red-rgb:200,30,58; --gridline-rgb:15,42,46;
+    --headerbg: rgba(243,236,220,0.88);
+    --glow1: rgba(var(--cyan-rgb),0.08); --glow2: rgba(var(--amber-rgb),0.06);
+  }
+  [data-theme] *{ transition: background-color .25s ease, border-color .25s ease, color .25s ease; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--fog); font-family:'Inter','Noto Sans Bengali',sans-serif; line-height:1.5; }
+  h1,h2,h3{ font-family:'Space Grotesk','Noto Sans Bengali',sans-serif; color:var(--white); letter-spacing:-0.02em; }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+  a{ color:inherit; text-decoration:none; }
+  .wrap{ max-width:560px; margin:0 auto; padding:0 24px 60px; }
+
+  header.app{ position:sticky; top:0; z-index:20; background:var(--headerbg); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+  .app-nav{ max-width:560px; margin:0 auto; padding:0 24px; height:70px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .logo{ display:flex; align-items:center; gap:10px; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:1.1rem; color:var(--white); }
+  .logo .bolt{ width:22px; height:22px; display:grid; place-items:center; color:var(--ink); background:var(--cyan); border-radius:6px; font-size:14px; font-weight:700; }
+  .back{ display:flex; align-items:center; gap:8px; font-size:0.88rem; color:var(--fog); transition:color .2s; }
+  .back:hover{ color:var(--white); }
+  .plate-chip{ display:flex; align-items:center; gap:8px; font-size:0.78rem; color:var(--white); background:var(--panel-2); border:1px solid var(--line); padding:7px 14px; border-radius:999px; }
+  .plate-chip::before{ content:""; width:6px; height:6px; border-radius:50%; background:var(--cyan); }
+  .theme-toggle{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:38px; height:38px; border-radius:50%; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--white); font-size:1rem; cursor:pointer;
+    flex-shrink:0; transition:border-color .2s, transform .2s;
+  }
+  .theme-toggle:hover{ border-color:var(--cyan); transform:translateY(-1px); }
+
+  .page-head{ padding:36px 0 24px; }
+  .eyebrow{ display:inline-flex; align-items:center; gap:8px; font-family:'JetBrains Mono', monospace; font-size:0.74rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--cyan); border:1px solid rgba(var(--cyan-rgb),0.3); padding:5px 12px; border-radius:999px; margin-bottom:14px; }
+  .page-head h1{ font-size:1.9rem; margin-bottom:8px; }
+  .page-head p{ font-size:0.95rem; }
+
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:26px; margin-bottom:20px; }
+  .station-card{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
+  .station-card .name{ color:var(--white); font-size:1.15rem; font-weight:600; margin-bottom:4px; }
+  .station-card .meta{ font-size:0.84rem; }
+  .status-pill{ font-size:0.72rem; color:var(--cyan); background:rgba(var(--cyan-rgb),0.1); border:1px solid rgba(var(--cyan-rgb),0.3); padding:5px 12px; border-radius:999px; white-space:nowrap; }
+
+  label{ display:block; font-size:0.8rem; font-weight:500; color:var(--white); margin-bottom:10px; }
+  .field{ margin-bottom:22px; }
+  .field:last-child{ margin-bottom:0; }
+  input[type="time"]{
+    width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--white);
+    padding:12px 14px; border-radius:10px; font-size:0.95rem; font-family:'JetBrains Mono', monospace;
+  }
+  input[type="time"]:focus{ outline:none; border-color:var(--cyan); box-shadow:0 0 0 3px rgba(var(--cyan-rgb),0.15); }
+
+  .duration-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .dur-btn{
+    background:var(--panel-2); border:1px solid var(--line); color:var(--fog);
+    padding:12px 0; border-radius:10px; font-family:'JetBrains Mono', monospace; font-size:0.88rem;
+    cursor:pointer; transition:border-color .2s, color .2s, background .2s;
+  }
+  .dur-btn.active{ color:var(--ink); background:var(--cyan); border-color:var(--cyan); font-weight:600; }
+
+  .summary-row{ display:flex; justify-content:space-between; font-size:0.9rem; padding:9px 0; border-bottom:1px solid var(--line); }
+  .summary-row:last-child{ border-bottom:none; font-weight:600; color:var(--white); }
+  .summary-row span:last-child{ font-family:'JetBrains Mono', monospace; }
+
+  .btn-primary{
+    width:100%; background:var(--cyan); color:var(--ink); border:none;
+    padding:15px 20px; border-radius:10px; font-weight:600; font-size:0.98rem;
+    font-family:'Inter', sans-serif; cursor:pointer; transition:transform .2s, box-shadow .2s;
+  }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 10px 28px rgba(var(--cyan-rgb),0.22); }
+  .note{ font-size:0.78rem; text-align:center; margin-top:14px; opacity:0.75; }
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="app-nav">
+    <a href="menu.html" class="logo" id="logoLink"><span class="bolt">⚡</span>VoltSpot</a>
+    <a href="find.html" class="back" id="backLink">← Find</a>
+    <span id="plateChip" class="plate-chip mono" hidden></span>
+    <a href="#" id="logoutLink" class="back" title="Log out">Log out</a>
+    <a href="#" id="settingsLink" class="theme-toggle" title="Settings" aria-label="Settings">⚙</a>
+    <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle day/night mode">🌙</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="page-head">
+    <span class="eyebrow" data-i18n="reserveEyebrow">Step 02 · Reserve</span>
+    <h1 data-i18n="reserveHeading">Hold your spot</h1>
+    <p data-i18n="reserveSub">We'll hold this charger for you. It releases automatically if you don't arrive in time.</p>
+  </div>
+
+  <div class="card station-card">
+    <div>
+      <div class="name" id="stationName">Nearest available charger</div>
+      <div class="meta mono" id="stationMeta">CCS · 120kW · $0.42/kWh</div>
+    </div>
+    <span class="status-pill" data-i18n="reserveAvailable">Available</span>
+  </div>
+
+  <div class="card" id="mapCard" style="padding:0; overflow:hidden; display:none;">
+    <iframe id="stationMapEmbed" style="width:100%; height:200px; border:0; display:block;" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Charger location"></iframe>
+  </div>
+
+  <form class="card" id="reserveForm">
+    <div class="field">
+      <label for="arrival" data-i18n="reserveArrivalLabel">Arrival time</label>
+      <input type="time" id="arrival" required>
+    </div>
+    <div class="field">
+      <label data-i18n="reserveDurationLabel">Hold duration</label>
+      <div class="duration-grid" id="durationGrid">
+        <button type="button" class="dur-btn" data-min="15">15 min</button>
+        <button type="button" class="dur-btn active" data-min="30">30 min</button>
+        <button type="button" class="dur-btn" data-min="45">45 min</button>
+        <button type="button" class="dur-btn" data-min="60">60 min</button>
+      </div>
+    </div>
+    <div class="field">
+      <label data-i18n="reserveSummaryLabel">Reservation summary</label>
+      <div class="summary-row"><span data-i18n="reserveSummaryCharger">Charger</span><span id="sumStation">—</span></div>
+      <div class="summary-row"><span data-i18n="reserveSummaryPrice">Price</span><span id="sumPrice">—</span></div>
+      <div class="summary-row"><span data-i18n="reserveSummaryDrive">Est. drive time</span><span id="sumDrive">—</span></div>
+      <div class="summary-row"><span data-i18n="reserveSummaryUntil">Held until</span><span id="sumUntil">—</span></div>
+      <div class="summary-row"><span data-i18n="reserveSummaryFee">Est. hold fee</span><span id="sumFee">$0.00</span></div>
+    </div>
+    <div class="error" id="reserveError" style="color:var(--red); font-size:0.8rem; margin-top:-8px; margin-bottom:14px;"></div>
+    <button type="submit" class="btn-primary" id="confirmBtn" data-i18n="reserveConfirm">Confirm reservation</button>
+    <p class="note" data-i18n="reserveNote">Free to cancel any time before your hold starts.</p>
+  </form>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/gmaps-config.js"></script>
+<script src="js/i18n.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+
+  // ---- day/night theme, carried across pages via the ?theme= param ----
+  let theme = params.get('theme') === 'day' ? 'day' : 'night';
+  document.documentElement.setAttribute('data-theme', theme);
+  params.set('theme', theme);
+
+  // ---- language, carried across pages via the ?lang= param ----
+  let lang = VoltSpotI18n.getLang(params);
+  params.set('lang', lang);
+  VoltSpotI18n.apply(lang);
+
+
+  function updateNavLinks(){
+    document.getElementById('backLink').href = 'find.html?' + params.toString();
+    document.getElementById('logoLink').href = 'menu.html?' + params.toString();
+    document.getElementById('settingsLink').href = 'settings.html?' + params.toString();
+  }
+
+  const themeToggle = document.getElementById('themeToggle');
+  themeToggle.textContent = theme === 'day' ? '🌙' : '☀️';
+  themeToggle.addEventListener('click', () => {
+    theme = theme === 'day' ? 'night' : 'day';
+    document.documentElement.setAttribute('data-theme', theme);
+    themeToggle.textContent = theme === 'day' ? '🌙' : '☀️';
+    params.set('theme', theme);
+    window.history.replaceState({}, '', 'reserve.html?' + params.toString());
+    updateNavLinks();
+  });
+
+  const plate = params.get('plate');
+  const station = params.get('station') || 'Nearest available charger';
+  const connector = params.get('connector') || 'CCS';
+  const kw = params.get('kw') || '120';
+  const price = parseFloat(params.get('price')) || 0.42;
+
+  if(plate){
+    document.getElementById('plateChip').textContent = plate;
+    document.getElementById('plateChip').hidden = false;
+  }
+  updateNavLinks();
+
+  document.getElementById('logoutLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    VoltSpotAPI.logout(theme);
+  });
+
+  document.getElementById('stationName').textContent = station;
+  document.getElementById('stationMeta').textContent = `${connector} · ${kw}kW · $${price.toFixed(2)}/kWh`;
+  document.getElementById('sumStation').textContent = station;
+  document.getElementById('sumPrice').textContent = `$${price.toFixed(2)}/kWh`;
+
+  const destLat = parseFloat(params.get('lat'));
+  const destLng = parseFloat(params.get('lng'));
+  const sumDrive = document.getElementById('sumDrive');
+
+  // ---- simple map preview, no API key or billing needed at all ----
+  if(!isNaN(destLat) && !isNaN(destLng)){
+    document.getElementById('mapCard').style.display = 'block';
+    document.getElementById('stationMapEmbed').src =
+      `https://maps.google.com/maps?q=${destLat},${destLng}&z=15&output=embed`;
+  }
+
+  // ---- real driving ETA to this specific charger, using live location + Google Maps ----
+  function estimateDriveTime(){
+    if(isNaN(destLat) || isNaN(destLng)){
+      sumDrive.textContent = VoltSpotI18n.t(lang, 'reserveDriveUnknown');
+      return;
+    }
+    if(!('geolocation' in navigator)){
+      sumDrive.textContent = VoltSpotI18n.t(lang, 'reserveDriveNoLocation');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const origin = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      try {
+        const maps = await loadGoogleMaps(lang);
+        const service = new maps.DistanceMatrixService();
+        service.getDistanceMatrix({
+          origins: [origin],
+          destinations: [{ lat: destLat, lng: destLng }],
+          travelMode: maps.TravelMode.DRIVING,
+          drivingOptions: { departureTime: new Date(), trafficModel: 'bestguess' },
+          unitSystem: maps.UnitSystem.IMPERIAL,
+        }, (response, status) => {
+          if(status === 'OK' && response.rows[0].elements[0].status === 'OK'){
+            const el = response.rows[0].elements[0];
+            const duration = el.duration_in_traffic || el.duration;
+            sumDrive.textContent = `${duration.text} (${el.distance.text})`;
+            setArrivalFromDriveMinutes(duration.value / 60);
+          } else {
+            sumDrive.textContent = VoltSpotI18n.t(lang, 'reserveDriveCalcFailed');
+          }
+        });
+      } catch (err){
+        // No API key configured yet, or Maps failed to load — fall back
+        // to a straight-line estimate so the page still works.
+        const R = 3958.8, toRad = d => d * Math.PI/180;
+        const dLat = toRad(destLat-origin.lat), dLon = toRad(destLng-origin.lng);
+        const a = Math.sin(dLat/2)**2 + Math.cos(toRad(origin.lat))*Math.cos(toRad(destLat))*Math.sin(dLon/2)**2;
+        const miles = R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const mins = Math.round(miles / 30 * 60); // assume ~30mph average
+        sumDrive.textContent = `~${mins} min (${miles.toFixed(1)} mi, ${VoltSpotI18n.t(lang, 'reserveDriveStraightLine')})`;
+        setArrivalFromDriveMinutes(mins);
+      }
+    }, () => { sumDrive.textContent = VoltSpotI18n.t(lang, 'reserveDriveEnableLocation'); }, { enableHighAccuracy:true, timeout:8000 });
+  }
+  estimateDriveTime();
+
+  let selectedMinutes = 30;
+  const arrivalInput = document.getElementById('arrival');
+  let userEditedArrival = false;
+
+  function defaultArrival(){
+    const d = new Date(Date.now() + 10 * 60000);
+    return d.toTimeString().slice(0,5);
+  }
+  arrivalInput.value = defaultArrival();
+
+  // Once we know the real (or estimated) drive time, push the arrival
+  // time forward by that many minutes from right now — unless the driver
+  // has already typed their own arrival time, in which case leave it alone.
+  function setArrivalFromDriveMinutes(minutes){
+    if(userEditedArrival) return;
+    const d = new Date(Date.now() + Math.max(1, Math.round(minutes)) * 60000);
+    arrivalInput.value = d.toTimeString().slice(0,5);
+    updateSummary();
+  }
+
+  function formatHeldUntil(){
+    const [h, m] = arrivalInput.value.split(':').map(Number);
+    const arrival = new Date();
+    arrival.setHours(h, m, 0, 0);
+    const held = new Date(arrival.getTime() + selectedMinutes * 60000);
+    return held.toTimeString().slice(0,5);
+  }
+
+  function updateSummary(){
+    document.getElementById('sumUntil').textContent = formatHeldUntil();
+    const fee = (selectedMinutes / 30) * 1.5; // flat hold fee, cosmetic estimate
+    document.getElementById('sumFee').textContent = '$' + fee.toFixed(2);
+  }
+
+  document.getElementById('durationGrid').addEventListener('click', (e) => {
+    if(!e.target.matches('.dur-btn')) return;
+    document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    selectedMinutes = parseInt(e.target.dataset.min, 10);
+    updateSummary();
+  });
+  arrivalInput.addEventListener('change', () => { userEditedArrival = true; updateSummary(); });
+  updateSummary();
+
+  const reserveError = document.getElementById('reserveError');
+  const confirmBtn = document.getElementById('confirmBtn');
+
+  document.getElementById('reserveForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    reserveError.textContent = '';
+    const heldUntil = formatHeldUntil();
+    const fee = (selectedMinutes / 30) * 1.5;
+
+    const target = new URLSearchParams(params);
+    target.set('station', station);
+    target.set('connector', connector);
+    target.set('kw', kw);
+    target.set('price', price);
+    target.set('heldUntil', heldUntil);
+
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = VoltSpotI18n.t(lang, 'reserveConfirming');
+    try {
+      const email = params.get('email');
+      const plate = params.get('plate');
+      const stationRefId = params.get('stationId');
+      if(email && plate){
+        const { session } = await VoltSpotAPI.reserveSession({
+          email, plate, station, stationId: stationRefId || undefined, connector, kw, price,
+          lat: destLat, lng: destLng,
+          arrivalTime: arrivalInput.value, heldUntil, holdFee: fee,
+        });
+        target.set('sessionId', session.id);
+      }
+    } catch (err) {
+      reserveError.textContent = err.message || VoltSpotI18n.t(lang, 'reserveSaveFailed');
+    }
+    window.location.href = 'navigate.html?' + target.toString();
+  });
+</script>
+
+</body>
+</html>

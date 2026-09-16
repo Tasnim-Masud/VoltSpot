@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoltSpot — Find, reserve, and charge without the guesswork</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#120D08;
+    --ink:#120D08;
+    --panel:#1D150E;
+    --panel-2:#271C12;
+    --line: rgba(var(--amber-rgb),0.16);
+    --cyan:#FF7A33;
+    --amber:#FFC53D;
+    --fog:#D8CDBC;
+    --white:#FFF8EF;
+    --red:#E5484D;
+    --cyan-rgb:255,122,51;
+    --amber-rgb:255,197,61;
+    --red-rgb:229,72,77;
+    --gridline-rgb:255,255,255;
+    --headerbg: rgba(18,13,8,0.85);
+    --glow1: rgba(var(--cyan-rgb),0.06);
+    --glow2: rgba(var(--amber-rgb),0.05);
+    --radius: 14px;
+  }
+  :root[data-theme="day"]{
+    --bg:#F3ECDC; --ink:#0F2A2E; --panel:#FFFFFF; --panel-2:#E4F1F0;
+    --cyan:#1CA7B8; --amber:#E8442F; --fog:#3F5A5F; --white:#0F2A2E; --red:#C81E3A;
+    --cyan-rgb:28,167,184; --amber-rgb:232,68,47; --red-rgb:200,30,58; --gridline-rgb:15,42,46;
+    --headerbg: rgba(243,236,220,0.88);
+    --glow1: rgba(var(--cyan-rgb),0.08); --glow2: rgba(var(--amber-rgb),0.06);
+  }
+  [data-theme] *{ transition: background-color .25s ease, border-color .25s ease, color .25s ease; }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ scroll-behavior:smooth; }
+
+  body{
+    background: var(--bg);
+    color: var(--fog);
+    font-family:'Inter', 'Noto Sans Bengali', sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+
+  h1,h2,h3{
+    font-family:'Space Grotesk', 'Noto Sans Bengali', sans-serif;
+    color: var(--white);
+    letter-spacing:-0.02em;
+  }
+
+  .mono{ font-family:'JetBrains Mono', monospace; }
+
+  a{ color:inherit; text-decoration:none; }
+  img,svg{ display:block; max-width:100%; }
+
+  .wrap{
+    max-width:1180px;
+    margin:0 auto;
+    padding:0 32px;
+  }
+
+  /* subtle asphalt texture */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background-image:
+      radial-gradient(circle at 15% 20%, var(--glow1), transparent 40%),
+      radial-gradient(circle at 85% 0%, var(--glow2), transparent 45%);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  /* ---------- NAV ---------- */
+  header{
+    position:sticky; top:0; z-index:50;
+    background: var(--headerbg);
+    backdrop-filter: blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  nav.wrap{
+    display:flex; align-items:center; justify-content:space-between;
+    height:76px;
+  }
+  .logo{
+    display:flex; align-items:center; gap:10px;
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700; font-size:1.25rem; color:var(--white);
+  }
+  .logo .bolt{
+    width:22px; height:22px;
+    display:grid; place-items:center;
+    color: var(--ink); background: var(--cyan);
+    border-radius:6px;
+    font-size:14px; font-weight:700;
+  }
+  .nav-links{ display:flex; gap:36px; font-size:0.92rem; }
+  .nav-links a{ color:var(--fog); transition:color .2s; position:relative; }
+  .nav-links a:hover{ color:var(--white); }
+  .nav-cta{
+    padding:10px 20px;
+    background:var(--cyan); color:var(--ink);
+    border-radius:999px; font-weight:600; font-size:0.9rem;
+    transition:transform .2s, box-shadow .2s;
+  }
+  .nav-cta:hover{ transform:translateY(-2px); box-shadow:0 8px 24px rgba(var(--cyan-rgb),0.25); }
+  .nav-toggle{ display:none; background:none; border:none; color:var(--white); font-size:1.5rem; cursor:pointer; }
+  .plate-chip{
+    display:flex; align-items:center; gap:8px;
+    font-size:0.78rem; color:var(--white);
+    background:var(--panel-2); border:1px solid var(--line);
+    padding:7px 14px; border-radius:999px; margin-right:14px;
+  }
+  .plate-chip::before{ content:""; width:6px; height:6px; border-radius:50%; background:var(--cyan); }
+  .theme-toggle{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:38px; height:38px; border-radius:50%; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--white); font-size:1rem; cursor:pointer;
+    flex-shrink:0; transition:border-color .2s, transform .2s;
+  }
+  .theme-toggle:hover{ border-color:var(--cyan); transform:translateY(-1px); }
+  .step a.step-link{ display:block; height:100%; }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    position:relative; z-index:1;
+    padding:88px 0 100px;
+    display:grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap:56px;
+    align-items:center;
+  }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.78rem; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--cyan);
+    border:1px solid rgba(var(--cyan-rgb),0.3);
+    padding:6px 14px; border-radius:999px;
+    margin-bottom:24px;
+  }
+  .eyebrow .dot{ width:6px; height:6px; border-radius:50%; background:var(--cyan); animation:pulse 1.8s infinite; }
+
+  .hero h1{
+    font-size:clamp(2.4rem, 4.4vw, 3.8rem);
+    font-weight:700;
+    line-height:1.06;
+    margin-bottom:22px;
+  }
+  .hero h1 span{ color: var(--cyan); }
+
+  /* the signature: charge-bar underline that fills like a battery */
+  .charge-rule{
+    position:relative;
+    height:10px;
+    width:min(420px, 70%);
+    background: var(--panel);
+    border:1px solid var(--line);
+    border-radius:999px;
+    margin: 6px 0 28px;
+    overflow:hidden;
+  }
+  .charge-rule::after{
+    content:"";
+    position:absolute; inset:0;
+    width:0%;
+    background: linear-gradient(90deg, var(--amber), var(--cyan));
+    border-radius:999px;
+    animation: fill-charge 2.4s cubic-bezier(.2,.8,.2,1) 0.3s forwards;
+  }
+  @keyframes fill-charge{ to{ width:100%; } }
+
+  .hero p.lead{
+    font-size:1.08rem; color:var(--fog);
+    max-width:480px;
+    margin-bottom:34px;
+  }
+  .hero-ctas{ display:flex; gap:14px; flex-wrap:wrap; margin-bottom:36px; }
+  .btn-primary{
+    background:var(--cyan); color:var(--ink);
+    padding:14px 26px; border-radius:10px; font-weight:600;
+    transition:transform .2s, box-shadow .2s;
+  }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 10px 28px rgba(var(--cyan-rgb),0.22); }
+  .btn-ghost{
+    border:1px solid var(--line); color:var(--white);
+    padding:14px 26px; border-radius:10px; font-weight:600;
+    transition:border-color .2s, background .2s;
+  }
+  .btn-ghost:hover{ border-color:var(--cyan); background:var(--glow1); }
+
+  .hero-stats{ display:flex; gap:34px; }
+  .hero-stats div{ display:flex; flex-direction:column; }
+  .hero-stats .num{ font-family:'JetBrains Mono', monospace; font-size:1.5rem; color:var(--white); font-weight:500; }
+  .hero-stats .lbl{ font-size:0.78rem; color:var(--fog); opacity:0.75; }
+
+  /* ---------- HERO DASHBOARD CARD ---------- */
+  .dash{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:22px;
+    box-shadow:0 30px 60px rgba(0,0,0,0.35);
+    position:relative;
+  }
+  .dash-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+  .dash-head .title{ font-size:0.85rem; color:var(--white); font-weight:600; }
+  .dash-head .live{
+    display:flex; align-items:center; gap:6px;
+    font-family:'JetBrains Mono', monospace; font-size:0.7rem; color:var(--cyan);
+  }
+  .dash-map{
+    height:150px; border-radius:14px; margin-bottom:16px;
+    background:
+      radial-gradient(circle at 30% 30%, rgba(var(--cyan-rgb),0.18), transparent 55%),
+      radial-gradient(circle at 75% 65%, rgba(var(--amber-rgb),0.14), transparent 50%),
+      repeating-linear-gradient(0deg, rgba(var(--gridline-rgb),0.03) 0 1px, transparent 1px 26px),
+      repeating-linear-gradient(90deg, rgba(var(--gridline-rgb),0.03) 0 1px, transparent 1px 26px),
+      var(--panel-2);
+    position:relative;
+    overflow:hidden;
+  }
+  .pin{
+    position:absolute; width:10px; height:10px; border-radius:50%;
+    box-shadow:0 0 0 5px rgba(var(--cyan-rgb),0.15);
+  }
+  .pin.you{ background:var(--white); top:66%; left:22%; }
+  .pin.a{ background:var(--cyan); top:32%; left:58%; animation:pulse 1.6s infinite; }
+  .pin.b{ background:var(--amber); top:56%; left:76%; }
+  .pin.c{ background:var(--red); top:20%; left:38%; }
+  .route{
+    position:absolute; top:66%; left:24%;
+    width:38%; height:2px;
+    background: repeating-linear-gradient(90deg, var(--cyan) 0 6px, transparent 6px 12px);
+    transform-origin:left center;
+    transform: rotate(-18deg);
+    opacity:0.7;
+  }
+
+  .station-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:11px 12px; border-radius:10px;
+    background:var(--panel-2);
+    margin-bottom:8px;
+    font-size:0.85rem;
+  }
+  .station-row .info{ display:flex; align-items:center; gap:10px; }
+  .station-row .status-dot{ width:8px; height:8px; border-radius:50%; }
+  .station-row.avail .status-dot{ background:var(--cyan); animation:pulse 1.8s infinite; }
+  .station-row.busy .status-dot{ background:var(--red); }
+  .station-row.maint .status-dot{ background:var(--amber); }
+  .station-row .name{ color:var(--white); font-weight:500; }
+  .station-row .sub{ font-size:0.72rem; color:var(--fog); opacity:0.7; }
+  .station-row .kw{ font-family:'JetBrains Mono', monospace; font-size:0.78rem; color:var(--fog); }
+
+  @keyframes pulse{
+    0%,100%{ box-shadow:0 0 0 0 rgba(var(--cyan-rgb),0.35); }
+    50%{ box-shadow:0 0 0 6px rgba(var(--cyan-rgb),0); }
+  }
+
+  /* ---------- SECTION SHARED ---------- */
+  section{ position:relative; z-index:1; padding:96px 0; border-top:1px solid var(--line); }
+  .section-head{ max-width:600px; margin-bottom:56px; }
+  .section-head .eyebrow{ margin-bottom:16px; }
+  .section-head h2{ font-size:clamp(1.8rem,3vw,2.5rem); margin-bottom:14px; }
+  .section-head p{ color:var(--fog); font-size:1.02rem; }
+
+  /* ---------- HOW IT WORKS ---------- */
+  .steps{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:24px;
+    counter-reset: step;
+  }
+  .step{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:26px 22px;
+    position:relative;
+    transition:transform .25s, border-color .25s;
+  }
+  .step:hover{ transform:translateY(-4px); border-color:rgba(var(--cyan-rgb),0.35); }
+  .step .idx{
+    font-family:'JetBrains Mono', monospace;
+    color:var(--cyan); font-size:0.8rem; margin-bottom:16px; display:block;
+  }
+  .step h3{ font-size:1.08rem; margin-bottom:8px; }
+  .step p{ font-size:0.88rem; color:var(--fog); }
+  .step-connector{
+    position:absolute; top:50%; right:-24px;
+    width:24px; height:1px; background:var(--line);
+  }
+  .step:last-child .step-connector{ display:none; }
+
+  /* ---------- FEATURES ---------- */
+  .feature-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:20px;
+  }
+  .feature{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:28px;
+    transition:transform .25s, box-shadow .25s, border-color .25s;
+  }
+  .feature:hover{
+    transform:translateY(-5px);
+    border-color:rgba(var(--cyan-rgb),0.3);
+    box-shadow:0 20px 40px rgba(0,0,0,0.25);
+  }
+  .feature .icon{
+    width:38px; height:38px; border-radius:10px;
+    background:rgba(var(--cyan-rgb),0.1);
+    color:var(--cyan);
+    display:grid; place-items:center;
+    margin-bottom:18px; font-size:1.1rem;
+  }
+  .feature h3{ font-size:1.05rem; margin-bottom:8px; }
+  .feature p{ font-size:0.88rem; color:var(--fog); }
+
+  /* ---------- LEGEND / GUIDE ---------- */
+  .guide{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:40px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:40px;
+    align-items:center;
+  }
+  .legend-list{ display:flex; flex-direction:column; gap:16px; }
+  .legend-item{ display:flex; align-items:center; gap:14px; font-size:0.92rem; }
+  .legend-item .dot{ width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .legend-item .dot.avail{ background:var(--cyan); }
+  .legend-item .dot.busy{ background:var(--red); }
+  .legend-item .dot.maint{ background:var(--amber); }
+  .legend-item .txt b{ color:var(--white); display:block; font-size:0.94rem; }
+  .legend-item .txt span{ color:var(--fog); font-size:0.82rem; }
+
+  .guide-copy h2{ font-size:1.6rem; margin-bottom:14px; }
+  .guide-copy p{ color:var(--fog); font-size:0.95rem; margin-bottom:10px; }
+
+  /* ---------- CTA ---------- */
+  .cta-band{
+    text-align:center;
+    padding:100px 0;
+    border-top:1px solid var(--line);
+  }
+  .cta-band h2{ font-size:clamp(1.9rem,3.6vw,3rem); margin-bottom:16px; }
+  .cta-band p{ color:var(--fog); max-width:480px; margin:0 auto 34px; }
+  .cta-buttons{ display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
+
+  footer{
+    border-top:1px solid var(--line);
+    padding:36px 0;
+    font-size:0.82rem; color:var(--fog); opacity:0.7;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width:920px){
+    .hero{ grid-template-columns:1fr; padding-top:56px; }
+    .nav-links{ display:none; }
+    .nav-toggle{ display:block; }
+    .steps{ grid-template-columns:1fr 1fr; }
+    .feature-grid{ grid-template-columns:1fr 1fr; }
+    .guide{ grid-template-columns:1fr; }
+    .step-connector{ display:none; }
+  }
+  @media (max-width:600px){
+    .wrap{ padding:0 20px; }
+    .steps, .feature-grid{ grid-template-columns:1fr; }
+    .hero-stats{ flex-wrap:wrap; gap:22px; }
+    footer{ flex-direction:column; gap:10px; text-align:center; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation:none !important; transition:none !important; }
+    .charge-rule::after{ width:100%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="wrap">
+    <div class="logo"><span class="bolt">⚡</span><span data-i18n="brand">VoltSpot</span></div>
+    <div class="nav-links">
+      <a href="#how" data-i18n="menuHow">How it works</a>
+      <a href="#features" data-i18n="menuFeatures">Features</a>
+      <a href="#guide" data-i18n="menuLiveStatus">Live status</a>
+      <a href="history.html" class="app-nav" id="historyNavLink" data-i18n="navHistory">History</a>
+    </div>
+    <span id="plateChip" class="plate-chip mono" hidden></span>
+    <a href="#" id="settingsLink" class="theme-toggle" title="Settings" aria-label="Settings">⚙</a>
+    <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle day/night mode">🌙</button>
+    <a href="#" id="logoutLink" class="nav-cta" style="background:transparent; border:1px solid var(--line); color:var(--white);" hidden data-i18n="navLogout">Log out</a>
+    <a href="login.html" id="navCta" class="nav-cta" data-i18n="menuGetApp">Get the app</a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+  </nav>
+</header>
+
+<section class="hero wrap" style="border-top:none; padding-top:88px;">
+  <div>
+    <div class="eyebrow"><span class="dot"></span><span data-i18n="menuHeroEyebrow">Live charger status, city-wide</span></div>
+    <h1 data-i18n-html="menuHeroHeading">Stop circling the block for an <span>EV charger</span>.</h1>
+    <div class="charge-rule" aria-hidden="true"></div>
+    <p class="lead" data-i18n="menuHeroLead">VoltSpot shows you which chargers are actually free right now, lets you reserve one before you leave, and guides you straight to the spot — no wasted trips, no guessing.</p>
+    <div class="hero-ctas">
+      <a href="login.html" id="heroCta" class="btn-primary" data-i18n="menuHeroFindBtn">Find a charger near me</a>
+      <a href="#how" class="btn-ghost" data-i18n="menuHeroHowBtn">See how it works</a>
+    </div>
+    <div class="hero-stats">
+      <div><span class="num" id="stat-stations">2,480+</span><span class="lbl" data-i18n="menuStatStations">Stations tracked</span></div>
+      <div><span class="num" id="stat-wait">-64%</span><span class="lbl" data-i18n="menuStatWait">Avg. wait reduced</span></div>
+      <div><span class="num" id="stat-users">38k</span><span class="lbl" data-i18n="menuStatUsers">Drivers on VoltSpot</span></div>
+    </div>
+  </div>
+
+  <div class="dash">
+    <div class="dash-head">
+      <span class="title">Nearby chargers</span>
+      <span class="live"><span class="dot" style="width:6px;height:6px;border-radius:50%;background:var(--cyan);animation:pulse 1.8s infinite;"></span>LIVE</span>
+    </div>
+    <div class="dash-map">
+      <div class="route"></div>
+      <div class="pin you" title="You"></div>
+      <div class="pin a" title="Available"></div>
+      <div class="pin b" title="Maintenance"></div>
+      <div class="pin c" title="Occupied"></div>
+    </div>
+    <div class="station-row avail">
+      <div class="info"><span class="status-dot"></span><div><span class="name">Dhaka–Rajshahi Hwy Station</span><br><span class="sub">DC Fast · Open 24 hours</span></div></div>
+      <span class="kw mono">440kW</span>
+    </div>
+    <div class="station-row avail">
+      <div class="info"><span class="status-dot"></span><div><span class="name">Sunny's Rikshaw Garage</span><br><span class="sub">AC · Closes 12 AM</span></div></div>
+      <span class="kw mono">22kW</span>
+    </div>
+    <div class="station-row busy">
+      <div class="info"><span class="status-dot"></span><div><span class="name">BPCL Charging Station</span><br><span class="sub">DC Fast · Morgram</span></div></div>
+      <span class="kw mono">30kW</span>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="menuHow">The flow</div>
+      <h2 data-i18n="menuHowHeading">From empty battery to charging, in four taps</h2>
+      <p data-i18n="menuHowSub">Each step removes one thing drivers usually have to guess about.</p>
+    </div>
+    <div class="steps">
+      <div class="step"><a class="step-link app-nav" href="find.html"><span class="idx mono">01</span><h3 data-i18n="menuStep1Title">Find</h3><p data-i18n="menuStep1Desc">See every nearby charger's live status — available, occupied, or under maintenance — before you drive there.</p></a><div class="step-connector"></div></div>
+      <div class="step"><a class="step-link app-nav" href="reserve.html"><span class="idx mono">02</span><h3 data-i18n="menuStep2Title">Reserve</h3><p data-i18n="menuStep2Desc">Hold a spot and a charger for a set window. It releases automatically if you don't show up.</p></a><div class="step-connector"></div></div>
+      <div class="step"><a class="step-link app-nav" href="navigate.html"><span class="idx mono">03</span><h3 data-i18n="menuStep3Title">Navigate</h3><p data-i18n="menuStep3Desc">Turn-by-turn directions straight to your reserved spot, with live traffic and arrival time.</p></a><div class="step-connector"></div></div>
+      <div class="step"><a class="step-link app-nav" href="pay.html"><span class="idx mono">04</span><h3 data-i18n="menuStep4Title">Charge & pay</h3><p data-i18n="menuStep4Desc">Start charging from your phone, watch progress in real time, and get billed automatically when you unplug.</p></a></div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="menuFeatures">What's inside</div>
+      <h2 data-i18n="menuFeaturesHeading">Built around the questions drivers actually ask</h2>
+      <p data-i18n="menuFeaturesSub">Not just a map — a running picture of every station's capacity, price, and condition.</p>
+    </div>
+    <div class="feature-grid">
+      <div class="feature"><div class="icon">📍</div><h3 data-i18n="menuFeat1Title">Smart parking</h3><p data-i18n="menuFeat1Desc">Live availability, reservations, and estimated wait time for every EV bay nearby.</p></div>
+      <div class="feature"><div class="icon">⚡</div><h3 data-i18n="menuFeat2Title">Charger details</h3><p data-i18n="menuFeat2Desc">Connector type, charging speed, price per kWh, and operating hours before you commit.</p></div>
+      <div class="feature"><div class="icon">🧭</div><h3 data-i18n="menuFeat3Title">Guided navigation</h3><p data-i18n="menuFeat3Desc">Best route, live traffic, and accurate arrival time to your reserved charger.</p></div>
+      <div class="feature"><div class="icon">💳</div><h3 data-i18n="menuFeat4Title">Automatic billing</h3><p data-i18n="menuFeat4Desc">Cards, wallets, or monthly accounts — with digital receipts and usage reports.</p></div>
+      <div class="feature"><div class="icon">🤖</div><h3 data-i18n="menuFeat5Title">Smart recommendations</h3><p data-i18n="menuFeat5Desc">The cheapest, fastest, or least crowded charger near you, ranked by what matters most right now.</p></div>
+      <div class="feature"><div class="icon">🔔</div><h3 data-i18n="menuFeat6Title">Reservation alerts</h3><p data-i18n="menuFeat6Desc">Notified before your hold expires, and again the moment your car is fully charged.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="guide">
+  <div class="wrap">
+    <div class="guide">
+      <div class="guide-copy">
+        <h2 data-i18n="menuGuideHeading">Reading the map takes five seconds</h2>
+        <p data-i18n="menuGuideP1">Every charger on VoltSpot is color-coded the same way, everywhere in the app — on the map, in search results, and in your reservation screen.</p>
+        <p data-i18n="menuGuideP2">Tap any dot for connector type, speed, and current price. Green means you can reserve it right now.</p>
+      </div>
+      <div class="legend-list">
+        <div class="legend-item"><span class="dot avail"></span><div class="txt"><b data-i18n="menuLegendAvailTitle">Available</b><span data-i18n="menuLegendAvailDesc">Free to reserve immediately</span></div></div>
+        <div class="legend-item"><span class="dot busy"></span><div class="txt"><b data-i18n="menuLegendBusyTitle">Occupied</b><span data-i18n="menuLegendBusyDesc">In use — join the queue or get notified</span></div></div>
+        <div class="legend-item"><span class="dot maint"></span><div class="txt"><b data-i18n="menuLegendMaintTitle">Maintenance</b><span data-i18n="menuLegendMaintDesc">Temporarily offline, hidden from routing</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-band" id="cta">
+  <div class="wrap">
+    <h2 data-i18n="menuCtaHeading">Your next charge, already waiting for you.</h2>
+    <p data-i18n="menuCtaLead">Set your car's connector type once — VoltSpot handles the rest, every time you plug in.</p>
+    <div class="cta-buttons">
+      <a href="#" class="btn-primary" data-i18n="menuCtaIos">Download for iOS</a>
+      <a href="#" class="btn-ghost" data-i18n="menuCtaAndroid">Download for Android</a>
+    </div>
+  </div>
+</section>
+
+<footer class="wrap">
+  <span data-i18n="menuFooterCopyright">© 2026 VoltSpot EV Charging Network</span>
+  <span class="mono" data-i18n="menuFooterTagline">Built for drivers, not detours</span>
+</footer>
+
+<script src="js/api.js"></script>
+<script src="js/i18n.js"></script>
+<script>
+  // animate hero numbers up on load, purely cosmetic
+  function animateCount(el, end, suffix, duration){
+    const start = 0;
+    const startTime = performance.now();
+    function tick(now){
+      const p = Math.min((now - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      const val = Math.round(start + (end - start) * eased);
+      el.textContent = val.toLocaleString() + suffix;
+      if(p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+  window.addEventListener('DOMContentLoaded', () => {
+    animateCount(document.getElementById('stat-stations'), 2480, '+', 1400);
+    animateCount(document.getElementById('stat-users'), 38, 'k', 1200);
+  });
+
+  // reveal-on-scroll for cards
+  const revealables = document.querySelectorAll('.step, .feature');
+  revealables.forEach(el => { el.style.opacity = 0; el.style.transform = 'translateY(16px)'; el.style.transition = 'opacity .5s ease, transform .5s ease'; });
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting){
+        entry.target.style.opacity = 1;
+        entry.target.style.transform = 'translateY(0)';
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  revealables.forEach(el => io.observe(el));
+
+  // day/night theme, carried across every page via the ?theme= param
+  let theme = 'night';
+  let lang = 'en';
+  (function(){
+    const p = new URLSearchParams(window.location.search);
+    theme = p.get('theme') === 'day' ? 'day' : 'night';
+    document.documentElement.setAttribute('data-theme', theme);
+    lang = VoltSpotI18n.getLang(p);
+    VoltSpotI18n.apply(lang);
+  })();
+
+  // session-aware navigation: if a driver has already signed in (email + plate
+  // present in the URL, handed off from login.html), skip sending them back
+  // through login and carry their session forward into every app page.
+  // Theme is carried the same way regardless of sign-in state.
+  function refreshNav(){
+    const params = new URLSearchParams(window.location.search);
+    params.set('theme', theme);
+    params.set('lang', lang);
+    const email = params.get('email');
+    const plate = params.get('plate');
+    const signedIn = Boolean(email && plate);
+
+    const loginLink = document.getElementById('navCta');
+    const heroCta = document.getElementById('heroCta');
+    const logoutLink = document.getElementById('logoutLink');
+    const settingsLink = document.getElementById('settingsLink');
+    settingsLink.href = 'settings.html?' + params.toString();
+
+    if(signedIn){
+      const chip = document.getElementById('plateChip');
+      chip.textContent = plate;
+      chip.hidden = false;
+
+      loginLink.textContent = VoltSpotI18n.t(lang, 'menuOpenApp');
+      loginLink.href = 'find.html?' + params.toString();
+      heroCta.href = 'find.html?' + params.toString();
+
+      logoutLink.hidden = false;
+      logoutLink.onclick = (e) => { e.preventDefault(); VoltSpotAPI.logout(theme); };
+    } else {
+      loginLink.textContent = VoltSpotI18n.t(lang, 'menuGetApp');
+      loginLink.href = 'login.html?' + params.toString();
+      heroCta.href = 'login.html?' + params.toString();
+      logoutLink.hidden = true;
+    }
+
+    document.querySelectorAll('a.app-nav').forEach(a => {
+      const base = a.getAttribute('data-base-href') || a.getAttribute('href');
+      a.setAttribute('data-base-href', base);
+      const url = new URL(base, window.location.href);
+      params.forEach((v, k) => url.searchParams.set(k, v));
+      a.href = url.pathname + url.search;
+    });
+  }
+  refreshNav();
+
+  const themeToggle = document.getElementById('themeToggle');
+  themeToggle.textContent = theme === 'day' ? '🌙' : '☀️';
+  themeToggle.addEventListener('click', () => {
+    theme = theme === 'day' ? 'night' : 'day';
+    document.documentElement.setAttribute('data-theme', theme);
+    themeToggle.textContent = theme === 'day' ? '🌙' : '☀️';
+    const url = new URL(window.location.href);
+    url.searchParams.set('theme', theme);
+    window.history.replaceState({}, '', url);
+    refreshNav();
+  });
+
+  // mobile nav toggle
+  const toggle = document.querySelector('.nav-toggle');
+  const links = document.querySelector('.nav-links');
+  toggle.addEventListener('click', () => {
+    const open = links.style.display === 'flex';
+    links.style.display = open ? 'none' : 'flex';
+    links.style.cssText += 'position:absolute; top:76px; left:0; right:0; background:#120D08; flex-direction:column; padding:20px 32px; border-bottom:1px solid rgba(var(--amber-rgb),0.16);';
+  });
+</script>
+
+</body>
+</html>

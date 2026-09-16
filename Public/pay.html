@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoltSpot — Charge & pay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#120D08; --ink:#120D08; --panel:#1D150E; --panel-2:#271C12;
+    --line: rgba(var(--amber-rgb),0.16);
+    --cyan:#FF7A33; --amber:#FFC53D; --fog:#D8CDBC; --white:#FFF8EF; --red:#E5484D;
+    --cyan-rgb:255,122,51; --amber-rgb:255,197,61; --red-rgb:229,72,77; --gridline-rgb:255,255,255;
+    --headerbg: rgba(18,13,8,0.9);
+    --glow1: rgba(var(--cyan-rgb),0.06); --glow2: rgba(var(--amber-rgb),0.05);
+    --radius:14px;
+  }
+  :root[data-theme="day"]{
+    --bg:#F3ECDC; --ink:#0F2A2E; --panel:#FFFFFF; --panel-2:#E4F1F0;
+    --cyan:#1CA7B8; --amber:#E8442F; --fog:#3F5A5F; --white:#0F2A2E; --red:#C81E3A;
+    --cyan-rgb:28,167,184; --amber-rgb:232,68,47; --red-rgb:200,30,58; --gridline-rgb:15,42,46;
+    --headerbg: rgba(243,236,220,0.88);
+    --glow1: rgba(var(--cyan-rgb),0.08); --glow2: rgba(var(--amber-rgb),0.06);
+  }
+  [data-theme] *{ transition: background-color .25s ease, border-color .25s ease, color .25s ease; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--fog); font-family:'Inter','Noto Sans Bengali',sans-serif; line-height:1.5; }
+  h1,h2,h3{ font-family:'Space Grotesk','Noto Sans Bengali',sans-serif; color:var(--white); letter-spacing:-0.02em; }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+  a{ color:inherit; text-decoration:none; }
+  .wrap{ max-width:520px; margin:0 auto; padding:0 24px 60px; }
+
+  header.app{ position:sticky; top:0; z-index:20; background:var(--headerbg); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+  .app-nav{ max-width:520px; margin:0 auto; padding:0 24px; height:70px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .logo{ display:flex; align-items:center; gap:10px; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:1.1rem; color:var(--white); }
+  .logo .bolt{ width:22px; height:22px; display:grid; place-items:center; color:var(--ink); background:var(--cyan); border-radius:6px; font-size:14px; font-weight:700; }
+  .plate-chip{ display:flex; align-items:center; gap:8px; font-size:0.78rem; color:var(--white); background:var(--panel-2); border:1px solid var(--line); padding:7px 14px; border-radius:999px; }
+  .plate-chip::before{ content:""; width:6px; height:6px; border-radius:50%; background:var(--cyan); }
+  .theme-toggle{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:38px; height:38px; border-radius:50%; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--white); font-size:1rem; cursor:pointer;
+    flex-shrink:0; transition:border-color .2s, transform .2s;
+  }
+  .theme-toggle:hover{ border-color:var(--cyan); transform:translateY(-1px); }
+
+  .page-head{ padding:36px 0 24px; }
+  .eyebrow{ display:inline-flex; align-items:center; gap:8px; font-family:'JetBrains Mono', monospace; font-size:0.74rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--cyan); border:1px solid rgba(var(--cyan-rgb),0.3); padding:5px 12px; border-radius:999px; margin-bottom:14px; }
+  .page-head h1{ font-size:1.9rem; margin-bottom:8px; }
+  .page-head p{ font-size:0.95rem; }
+
+  /* charging view */
+  .charge-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:20px;
+    padding:32px 28px; margin-bottom:20px; text-align:center;
+  }
+  .ring-wrap{ position:relative; width:180px; height:180px; margin:0 auto 20px; }
+  .ring-wrap svg{ transform:rotate(-90deg); width:180px; height:180px; }
+  .ring-bg{ fill:none; stroke:var(--panel-2); stroke-width:12; }
+  .ring-fg{ fill:none; stroke:var(--cyan); stroke-width:12; stroke-linecap:round; transition: stroke-dashoffset 1s linear; }
+  .ring-label{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .ring-label .pct{ font-family:'JetBrains Mono', monospace; font-size:1.9rem; color:var(--white); font-weight:600; }
+  .ring-label .lbl{ font-size:0.76rem; margin-top:2px; }
+
+  .stat-row{ display:flex; gap:14px; margin-bottom:8px; }
+  .stat{ flex:1; background:var(--panel-2); border-radius:12px; padding:14px; }
+  .stat .num{ font-family:'JetBrains Mono', monospace; font-size:1.15rem; color:var(--white); font-weight:500; }
+  .stat .lbl{ font-size:0.72rem; opacity:0.8; margin-top:2px; }
+
+  .btn-primary{
+    width:100%; background:var(--cyan); color:var(--ink); border:none;
+    padding:15px 20px; border-radius:10px; font-weight:600; font-size:0.98rem;
+    font-family:'Inter', sans-serif; cursor:pointer; transition:transform .2s, box-shadow .2s;
+    margin-top:10px;
+  }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 10px 28px rgba(var(--cyan-rgb),0.22); }
+  .btn-primary:disabled{ opacity:0.5; cursor:not-allowed; transform:none; box-shadow:none; }
+  .btn-ghost{
+    width:100%; background:transparent; border:1px solid var(--line); color:var(--white);
+    padding:15px 20px; border-radius:10px; font-weight:600; font-size:0.98rem;
+    font-family:'Inter', sans-serif; cursor:pointer; margin-top:10px;
+  }
+
+  /* not-connected / null state */
+  #notConnectedView{ display:none; }
+  .null-card{
+    background:var(--panel); border:1px dashed var(--line); border-radius:20px;
+    padding:44px 28px; margin-bottom:20px; text-align:center;
+  }
+  .null-icon{
+    width:72px; height:72px; margin:0 auto 18px; border-radius:50%;
+    background:var(--panel-2); color:var(--fog); opacity:0.8;
+    display:grid; place-items:center; font-size:1.8rem;
+  }
+  .null-card h2{ font-size:1.15rem; margin-bottom:8px; }
+  .null-card p{ font-size:0.88rem; max-width:340px; margin:0 auto; }
+
+  /* receipt view */
+  #receiptView{ display:none; }
+  .receipt-card{ background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:28px; margin-bottom:20px; }
+  .receipt-head{ text-align:center; margin-bottom:22px; }
+  .receipt-head .badge{
+    width:52px; height:52px; border-radius:50%; background:rgba(var(--cyan-rgb),0.12);
+    color:var(--cyan); display:grid; place-items:center; font-size:1.5rem; margin:0 auto 14px;
+  }
+  .receipt-row{ display:flex; justify-content:space-between; font-size:0.88rem; padding:9px 0; border-bottom:1px solid var(--line); }
+  .receipt-row:last-child{ border-bottom:none; padding-top:14px; font-weight:600; color:var(--white); font-size:1rem; }
+  .receipt-row span:last-child{ font-family:'JetBrains Mono', monospace; }
+  .txn-id{ text-align:center; font-size:0.74rem; opacity:0.7; margin-top:14px; }
+  #downloadReceiptBtn{ display:block; }
+  #downloadReceiptBtn[hidden]{ display:none; }
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="app-nav">
+    <a href="menu.html" class="logo" id="logoLink"><span class="bolt">⚡</span>VoltSpot</a>
+    <a href="history.html" class="plate-chip mono" id="historyLink" style="text-decoration:none;">History</a>
+    <span id="plateChip" class="plate-chip mono" hidden></span>
+    <a href="#" id="logoutLink" class="plate-chip mono" style="text-decoration:none;" title="Log out">Log out</a>
+    <a href="#" id="settingsLink" class="theme-toggle" title="Settings" aria-label="Settings">⚙</a>
+    <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle day/night mode">🌙</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="page-head">
+    <span class="eyebrow" data-i18n="payEyebrow">Step 04 · Charge & pay</span>
+    <h1 id="pageTitle" data-i18n="payTitleCharging">Charging in progress</h1>
+    <p id="pageSub" data-i18n="paySubCharging">Plugged in and drawing power. Billing happens automatically when you unplug.</p>
+  </div>
+
+  <div id="notConnectedView">
+    <div class="null-card">
+      <div class="null-icon">🔌</div>
+      <h2 data-i18n="payNullTitle">Charger not connected</h2>
+      <p data-i18n="payNullText">You haven't plugged in yet — reserve a charger and follow navigation to your spot. Once you tap "I've arrived," charging starts here automatically.</p>
+    </div>
+    <a class="btn-primary" style="display:block; text-align:center;" id="findChargerBtn" href="find.html" data-i18n="payFindCharger">Find a charger</a>
+  </div>
+
+  <div id="chargeView">
+    <div class="charge-card">
+      <div class="ring-wrap">
+        <svg viewBox="0 0 180 180">
+          <circle class="ring-bg" cx="90" cy="90" r="78"></circle>
+          <circle class="ring-fg" id="ringFg" cx="90" cy="90" r="78" stroke-dasharray="490" stroke-dashoffset="490"></circle>
+        </svg>
+        <div class="ring-label">
+          <span class="pct mono" id="pctLabel">0%</span>
+          <span class="lbl" data-i18n="payBattery">battery</span>
+        </div>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="num mono" id="kwStat">0.0 kW</div><div class="lbl" data-i18n="payChargeRate">Charge rate</div></div>
+        <div class="stat"><div class="num mono" id="timeStat">00:00</div><div class="lbl" data-i18n="payElapsed">Elapsed</div></div>
+        <div class="stat"><div class="num mono" id="costStat">$0.00</div><div class="lbl" data-i18n="payRunningCost">Running cost</div></div>
+      </div>
+    </div>
+    <button class="btn-primary" id="stopBtn" data-i18n="payStopBtn">Stop charging & pay</button>
+  </div>
+
+  <div id="receiptView">
+    <div class="receipt-card">
+      <div class="receipt-head">
+        <div class="badge">✓</div>
+        <h2 data-i18n="payTitleComplete">Charging complete</h2>
+      </div>
+      <div class="receipt-row"><span data-i18n="payReceiptCharger">Charger</span><span id="rStation">—</span></div>
+      <div class="receipt-row"><span data-i18n="payReceiptEnergy">Energy delivered</span><span id="rEnergy">—</span></div>
+      <div class="receipt-row"><span data-i18n="payReceiptDuration">Duration</span><span id="rDuration">—</span></div>
+      <div class="receipt-row"><span data-i18n="payReceiptRate">Rate</span><span id="rRate">—</span></div>
+      <div class="receipt-row"><span data-i18n="payReceiptTotal">Total charged</span><span id="rTotal">—</span></div>
+      <div class="txn-id mono" id="rTxn"></div>
+    </div>
+    <a class="btn-primary" style="text-align:center; text-decoration:none; box-sizing:border-box;" id="downloadReceiptBtn" href="#" download hidden data-i18n="payDownloadReceipt">⬇ Download receipt (PDF)</a>
+    <button class="btn-ghost" id="viewHistoryBtn" data-i18n="payViewHistory">View charging history</button>
+    <button class="btn-ghost" id="doneBtn" data-i18n="payDone">Done — back to menu</button>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/i18n.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+
+  // ---- day/night theme, carried across pages via the ?theme= param ----
+  let theme = params.get('theme') === 'day' ? 'day' : 'night';
+  document.documentElement.setAttribute('data-theme', theme);
+  params.set('theme', theme);
+
+  // ---- language, carried across pages via the ?lang= param ----
+  let lang = VoltSpotI18n.getLang(params);
+  params.set('lang', lang);
+  VoltSpotI18n.apply(lang);
+
+  function updateNavLinks(){
+    document.getElementById('logoLink').href = 'menu.html?' + params.toString();
+    document.getElementById('findChargerBtn').href = 'find.html?' + params.toString();
+    document.getElementById('historyLink').href = 'history.html?' + params.toString();
+    document.getElementById('settingsLink').href = 'settings.html?' + params.toString();
+  }
+
+  const themeToggle = document.getElementById('themeToggle');
+  themeToggle.textContent = theme === 'day' ? '🌙' : '☀️';
+  themeToggle.addEventListener('click', () => {
+    theme = theme === 'day' ? 'night' : 'day';
+    document.documentElement.setAttribute('data-theme', theme);
+    themeToggle.textContent = theme === 'day' ? '🌙' : '☀️';
+    params.set('theme', theme);
+    window.history.replaceState({}, '', 'pay.html?' + params.toString());
+    updateNavLinks();
+  });
+
+  const plate = params.get('plate');
+  const station = params.get('station') || 'Nearest available charger';
+  const price = parseFloat(params.get('price')) || 0.42;
+  const kwRate = parseFloat(params.get('kw')) || 60;
+  const sessionId = params.get('sessionId');
+
+  if(plate){
+    document.getElementById('plateChip').textContent = plate;
+    document.getElementById('plateChip').hidden = false;
+  }
+  updateNavLinks();
+
+  document.getElementById('logoutLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    VoltSpotAPI.logout(theme);
+  });
+
+  // A charger only shows a live session once the driver has actually
+  // reserved one, navigated there, and tapped "I've arrived" — navigate.html
+  // sets connected=true at that point. Arriving here any other way (e.g.
+  // opening this page directly) shows the null "not connected" state instead.
+  const isConnected = params.get('connected') === 'true' && Boolean(params.get('station'));
+
+  const notConnectedView = document.getElementById('notConnectedView');
+  const chargeView = document.getElementById('chargeView');
+
+  if(!isConnected){
+    notConnectedView.style.display = 'block';
+    chargeView.style.display = 'none';
+    document.getElementById('pageTitle').textContent = VoltSpotI18n.t(lang, 'payTitleNotConnected');
+    document.getElementById('pageSub').textContent = VoltSpotI18n.t(lang, 'paySubNotConnected');
+  } else {
+    notConnectedView.style.display = 'none';
+    chargeView.style.display = 'block';
+  }
+
+  const circumference = 2 * Math.PI * 78;
+  const ringFg = document.getElementById('ringFg');
+  const pctLabel = document.getElementById('pctLabel');
+  const kwStat = document.getElementById('kwStat');
+  const timeStat = document.getElementById('timeStat');
+  const costStat = document.getElementById('costStat');
+
+  let battery = 22; // starting charge, cosmetic
+  let elapsedSec = 0;
+  let energyKwh = 0;
+  let running = isConnected;
+
+  function render(){
+    const offset = circumference - (Math.min(battery,100) / 100) * circumference;
+    ringFg.style.strokeDashoffset = offset;
+    pctLabel.textContent = Math.min(Math.round(battery), 100) + '%';
+    const mins = String(Math.floor(elapsedSec / 60)).padStart(2,'0');
+    const secs = String(elapsedSec % 60).padStart(2,'0');
+    timeStat.textContent = mins + ':' + secs;
+    kwStat.textContent = running ? (kwRate).toFixed(0) + ' kW' : '0.0 kW';
+    costStat.textContent = '$' + (energyKwh * price).toFixed(2);
+  }
+
+  let tick = null;
+  if(isConnected){
+    render();
+    tick = setInterval(() => {
+      if(!running) return;
+      elapsedSec += 1;
+      battery = Math.min(100, battery + 1.1);
+      energyKwh += kwRate / 3600 * 5; // scaled up so the demo cost visibly climbs
+      render();
+      if(battery >= 100){
+        running = false;
+        clearInterval(tick);
+      }
+    }, 1000);
+  }
+
+  async function finishAndShowReceipt(){
+    running = false;
+    if(tick) clearInterval(tick);
+    document.getElementById('chargeView').style.display = 'none';
+    document.getElementById('receiptView').style.display = 'block';
+    document.getElementById('pageTitle').textContent = VoltSpotI18n.t(lang, 'payTitleComplete');
+    document.getElementById('pageSub').textContent = VoltSpotI18n.t(lang, 'paySubComplete');
+
+    const mins = String(Math.floor(elapsedSec / 60)).padStart(2,'0');
+    const secs = String(elapsedSec % 60).padStart(2,'0');
+    const downloadBtn = document.getElementById('downloadReceiptBtn');
+
+    document.getElementById('rStation').textContent = station;
+    document.getElementById('rDuration').textContent = mins + ':' + secs;
+    document.getElementById('rRate').textContent = '$' + price.toFixed(2) + '/kWh';
+
+    // Persist the finished session to the backend — this is the permanent
+    // charging-history record and the source of truth for the receipt.
+    if(sessionId){
+      try {
+        const { session } = await VoltSpotAPI.completeSession(sessionId, energyKwh, elapsedSec);
+        document.getElementById('rEnergy').textContent = Number(session.energy_kwh).toFixed(1) + ' kWh';
+        document.getElementById('rTotal').textContent = '$' + Number(session.total_cost).toFixed(2);
+        document.getElementById('rTxn').textContent = session.txn_id;
+        downloadBtn.href = VoltSpotAPI.receiptUrl(session.id);
+        downloadBtn.hidden = false;
+        return;
+      } catch (err) {
+        console.warn('Could not save session to backend:', err.message);
+      }
+    }
+
+    // Fallback (no backend / no sessionId) — show a local-only receipt and
+    // hide the PDF download, since there's no server record to render it from.
+    document.getElementById('rEnergy').textContent = energyKwh.toFixed(1) + ' kWh';
+    document.getElementById('rTotal').textContent = '$' + (energyKwh * price).toFixed(2);
+    document.getElementById('rTxn').textContent = 'TXN-' + Math.random().toString(36).slice(2,10).toUpperCase();
+    downloadBtn.hidden = true;
+  }
+
+  document.getElementById('stopBtn').addEventListener('click', finishAndShowReceipt);
+  document.getElementById('doneBtn').addEventListener('click', () => {
+    window.location.href = 'menu.html?' + params.toString();
+  });
+  document.getElementById('viewHistoryBtn').addEventListener('click', () => {
+    window.location.href = 'history.html?' + params.toString();
+  });
+</script>
+
+</body>
+</html>

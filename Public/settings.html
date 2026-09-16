@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoltSpot — Settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#120D08; --ink:#120D08; --panel:#1D150E; --panel-2:#271C12;
+    --line: rgba(var(--amber-rgb),0.16);
+    --cyan:#FF7A33; --amber:#FFC53D; --fog:#D8CDBC; --white:#FFF8EF; --red:#E5484D; --green:#3ECF8E;
+    --cyan-rgb:255,122,51; --amber-rgb:255,197,61;
+    --headerbg: rgba(18,13,8,0.9);
+  }
+  :root[data-theme="day"]{
+    --bg:#F3ECDC; --ink:#0F2A2E; --panel:#FFFFFF; --panel-2:#E4F1F0;
+    --cyan:#1CA7B8; --amber:#E8442F; --fog:#3F5A5F; --white:#0F2A2E; --red:#C81E3A; --green:#1E8E5A;
+    --cyan-rgb:28,167,184; --amber-rgb:232,68,47;
+    --headerbg: rgba(243,236,220,0.88);
+  }
+  [data-theme] *{ transition: background-color .25s ease, border-color .25s ease, color .25s ease; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{
+    background:var(--bg); color:var(--fog); font-family:'Inter','Noto Sans Bengali',sans-serif; line-height:1.6;
+  }
+  h1,h2,h3{ font-family:'Space Grotesk','Noto Sans Bengali',sans-serif; color:var(--white); letter-spacing:-0.01em; }
+  a{ color:inherit; text-decoration:none; }
+  .wrap{ max-width:640px; margin:0 auto; padding:0 24px 60px; }
+
+  header.app{ position:sticky; top:0; z-index:20; background:var(--headerbg); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+  .app-nav{ max-width:640px; margin:0 auto; padding:0 24px; height:70px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .logo{ display:flex; align-items:center; gap:10px; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:1.1rem; color:var(--white); }
+  .logo .bolt{ width:22px; height:22px; display:grid; place-items:center; color:var(--ink); background:var(--cyan); border-radius:6px; font-size:14px; font-weight:700; }
+  .back{ font-size:0.88rem; color:var(--fog); transition:color .2s; }
+  .back:hover{ color:var(--white); }
+
+  .page-head{ padding:36px 0 24px; }
+  .eyebrow{ display:inline-flex; align-items:center; gap:8px; font-family:'JetBrains Mono', monospace; font-size:0.74rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--cyan); border:1px solid rgba(var(--cyan-rgb),0.3); padding:5px 12px; border-radius:999px; margin-bottom:14px; }
+  .page-head h1{ font-size:1.8rem; margin-bottom:8px; }
+  .page-head p{ font-size:0.95rem; }
+
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:24px; margin-bottom:20px; }
+  .card h3{ font-size:1.05rem; margin-bottom:4px; }
+  .card .card-sub{ font-size:0.85rem; opacity:0.8; margin-bottom:20px; }
+
+  .option-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .option-btn{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    padding:20px 12px; border-radius:12px; border:1px solid var(--line); background:var(--panel-2);
+    color:var(--fog); cursor:pointer; font-family:inherit; font-size:1rem;
+    transition:border-color .2s, background .2s, color .2s;
+  }
+  .option-btn .big{ font-size:1.5rem; }
+  .option-btn.active{ border-color:var(--cyan); background:rgba(var(--cyan-rgb),0.1); color:var(--white); font-weight:600; }
+
+  .saved-msg{ text-align:center; font-size:0.85rem; color:var(--green); margin-top:16px; min-height:1.2em; opacity:0; transition:opacity .3s; }
+  .saved-msg.show{ opacity:1; }
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="app-nav">
+    <a href="menu.html" class="logo" id="logoLink"><span class="bolt">⚡</span><span data-i18n="brand">VoltSpot</span></a>
+    <a href="menu.html" class="back" id="backLink" data-i18n="settingsBackToMenu">← Back to menu</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="page-head">
+    <span class="eyebrow" data-i18n="settingsEyebrow">Preferences</span>
+    <h1 data-i18n="settingsHeading">Settings</h1>
+    <p data-i18n="settingsSub">Choose your language and appearance. These apply across the whole app.</p>
+  </div>
+
+  <div class="card">
+    <h3 data-i18n="settingsLanguageTitle">Language</h3>
+    <div class="card-sub" data-i18n="settingsLanguageSub">Choose the language VoltSpot is displayed in.</div>
+    <div class="option-row" id="langRow">
+      <button type="button" class="option-btn" data-lang="en">
+        <span class="big">EN</span>
+        <span data-i18n="langEnglish">English</span>
+      </button>
+      <button type="button" class="option-btn" data-lang="bn">
+        <span class="big">বাং</span>
+        <span data-i18n="langBangla">বাংলা</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 data-i18n="settingsThemeTitle">Appearance</h3>
+    <div class="card-sub" data-i18n="settingsThemeSub">Switch between day and night mode.</div>
+    <div class="option-row" id="themeRow">
+      <button type="button" class="option-btn" data-theme-choice="day">
+        <span class="big">☀️</span>
+        <span data-i18n="settingsThemeDay">Day</span>
+      </button>
+      <button type="button" class="option-btn" data-theme-choice="night">
+        <span class="big">🌙</span>
+        <span data-i18n="settingsThemeNight">Night</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="saved-msg" id="savedMsg" data-i18n="settingsSaved">Saved.</div>
+</div>
+
+<script src="js/i18n.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  let theme = params.get('theme') === 'day' ? 'day' : 'night';
+  let lang = VoltSpotI18n.getLang(params);
+  document.documentElement.setAttribute('data-theme', theme);
+  params.set('theme', theme);
+  params.set('lang', lang);
+
+  function updateLinks(){
+    document.getElementById('logoLink').href = 'menu.html?' + params.toString();
+    document.getElementById('backLink').href = 'menu.html?' + params.toString();
+  }
+  updateLinks();
+  VoltSpotI18n.apply(lang);
+
+  function highlight(){
+    document.querySelectorAll('#langRow .option-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.lang === lang);
+    });
+    document.querySelectorAll('#themeRow .option-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.themeChoice === theme);
+    });
+  }
+  highlight();
+
+  function showSaved(){
+    const msg = document.getElementById('savedMsg');
+    msg.classList.add('show');
+    clearTimeout(showSaved._t);
+    showSaved._t = setTimeout(() => msg.classList.remove('show'), 1500);
+  }
+
+  function syncUrl(){
+    params.set('theme', theme);
+    params.set('lang', lang);
+    window.history.replaceState({}, '', 'settings.html?' + params.toString());
+    updateLinks();
+  }
+
+  document.getElementById('langRow').addEventListener('click', (e) => {
+    const btn = e.target.closest('.option-btn');
+    if(!btn) return;
+    lang = btn.dataset.lang;
+    document.documentElement.setAttribute('data-theme', theme);
+    VoltSpotI18n.apply(lang);
+    highlight();
+    syncUrl();
+    showSaved();
+  });
+
+  document.getElementById('themeRow').addEventListener('click', (e) => {
+    const btn = e.target.closest('.option-btn');
+    if(!btn) return;
+    theme = btn.dataset.themeChoice;
+    document.documentElement.setAttribute('data-theme', theme);
+    highlight();
+    syncUrl();
+    showSaved();
+  });
+</script>
+
+</body>
+</html>
